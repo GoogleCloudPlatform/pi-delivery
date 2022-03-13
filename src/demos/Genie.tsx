@@ -14,9 +14,22 @@
  * limitations under the License.
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import { Fade, Grid, LinearProgress } from "@mui/material";
+import {
+  Fade,
+  FormControlLabel,
+  Grid,
+  LinearProgress,
+  Radio,
+  RadioGroup,
+} from "@mui/material";
 import ControlButtons from "components/ControlButtons";
 import DigitInput from "components/DigitInput";
 import BpmInput from "components/BpmInput";
@@ -66,11 +79,17 @@ export default function Genie() {
     setBpm(v);
   }, []);
 
+  const onBpmSelected = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setBpm(parseInt(e.target.value));
+    },
+    []
+  );
+
   const onDigit = useCallback(
     (e: CustomEvent<DigitEventDetail>) => {
       setActiveButton((prev) => {
-        if (e.detail.digit > 7)
-          return prev ?? 3;
+        if (e.detail.digit > 7) return prev ?? 3;
         return e.detail.digit;
       });
       if (!seeking) setStartDigit(e.detail.position);
@@ -133,8 +152,16 @@ export default function Genie() {
           value={startDigit}
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={4}>
         <BpmInput id="genie-piano-bpm" value={bpm} onChange={onBpmChange} />
+      </Grid>
+      <Grid item xs={8}>
+        <RadioGroup aria-label="BPM" value={bpm} onChange={onBpmSelected} row>
+          <FormControlLabel value="100" control={<Radio />} label="100" />
+          <FormControlLabel value="314" control={<Radio />} label="314" />
+          <FormControlLabel value="500" control={<Radio />} label="500" />
+          <FormControlLabel value="1000" control={<Radio />} label="1000" />
+        </RadioGroup>
       </Grid>
       <Grid item xs={12}>
         <ControlButtons
