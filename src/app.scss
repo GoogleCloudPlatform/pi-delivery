@@ -1,0 +1,135 @@
+/**
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@use "styles/main" with (
+  $brand-colour: #0288d1,
+  $nav-header-height: 60px,
+  $nav-background-color: #f5f5f5,
+  $nav-width: 210px,
+  $mobile-break: 700px,
+  $base-url: ""
+);
+
+@use "styles/borland";
+@use "styles/monaki";
+@use "styles/cloudcannon";
+
+.github {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.genie-controls {
+  max-width: 640px;
+
+  button {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    height: 50px;
+    width: 100%;
+    max-width: 80px;
+    transition: transform 0.15s linear;
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: bold;
+    user-select: none;
+    line-height: 1;
+  }
+
+  button[data-active="active"] {
+    transform: scale(1.2, 1.2);
+  }
+
+  span {
+    pointer-events: none;
+    color: #141e30;
+  }
+}
+
+.color-0 {
+  background: #ee2b29;
+  fill: #ee2b29;
+}
+.color-1 {
+  background: #ff9800;
+  fill: #ff9800;
+}
+.color-2 {
+  background: #ffff00;
+  fill: #ffff00;
+}
+.color-3 {
+  background: #c6ff00;
+  fill: #c6ff00;
+}
+.color-4 {
+  background: #00e5ff;
+  fill: #00e5ff;
+}
+.color-5 {
+  background: #2979ff;
+  fill: #2979ff;
+}
+.color-6 {
+  background: #651fff;
+  fill: #651fff;
+}
+.color-7 {
+  background: #d500f9;
+  fill: #d500f9;
+}
+
+.genie-piano {
+  position: relative;
+
+  @media (min-width: 1000px) {
+    width: 100%;
+  }
+  @media (min-width: 1000px) {
+    width: 142%;
+    max-width: 1000px;
+  }
+
+  canvas {
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    rect {
+      transition: all 0.2s linear;
+    }
+  }
+
+  .background {
+    width: 100%;
+    min-height: 350px;
+    height: 40vh;
+    background: #141e30;
+    background: linear-gradient(to bottom, #243b55, #141e30);
+  }
+}

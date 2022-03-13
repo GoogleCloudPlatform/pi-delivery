@@ -1,0 +1,13 @@
+diff --git a/esm/core/player.js b/esm/core/player.js
+index 53b7bd50f9a7cf9b5e4fc581cbad6b4dc49d8943..0fe47201e87fe7ea03c3f86952c4e127ff3697fc 100644
+--- a/esm/core/player.js
++++ b/esm/core/player.js
+@@ -106,7 +106,7 @@ export class BasePlayer {
+                 if (this.callbackObject) {
+                     this.callbackObject.stop();
+                 }
+-            }, `+${seq.totalTime}`);
++            }, `+${seq.totalTime - offset}`);
+         });
+     }
+     stop() {

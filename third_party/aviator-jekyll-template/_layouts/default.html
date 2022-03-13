@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% seo %}
+    
+    {% if jekyll.environment == 'production' and
+    site.google_analytics_key != '' %}
+    {% include gtag.html %}
+    {% endif %}
+  </head>
+  <body>
+    <header>
+      <h1>
+        <button type="button" class="open-nav" id="open-nav"></button>
+        <a href="{{ site.baseurl }}/"
+          ><img
+            src="{{ site.baseurl }}/images/logo.svg"
+            height="40"
+            alt="{{ site.title }} logo"
+        /></a>
+      </h1>
+
+      {% include sidebar.html %}
+
+      <p class="copyright">
+        Powered by<br />
+        <a href="https://cloud.google.com">Google Cloud Platform</a> &amp;
+        <a href="https://firebase.com">Firebase</a> <br>
+        <a href="https://cloudcannon.com/"> Template by CloudCannon </a>
+      </p>
+    </header>
+    <div class="main">{{ content }}</div>
+    <div class="github">
+      <a href="https://github.com/GoogleCloudPlatform/pi-delivery">
+        <img src="images/GitHub-Mark-Light-64px.png" width="64" height="64" alt="GitHub">
+      </a>
+    </div>
+  </body>
+</html>

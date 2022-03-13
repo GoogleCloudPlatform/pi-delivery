@@ -1,0 +1,17 @@
+{
+  "extends": "@tsconfig/recommended/tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "target": "ES2021",
+    "module": "ES2020",
+    "moduleResolution": "node",
+    "lib": ["DOM", "DOM.Iterable", "ES2021"],
+    "types": [],
+    "sourceMap": true,
+    "noImplicitAny": false,
+    "baseUrl": "src"
+  },
+  "include": ["src"],
+  "exclude": ["**/node_modules", "**.*/"]
+}
