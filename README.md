@@ -186,13 +186,13 @@ firebase emulators:start --project=$PROJECT
 You can also create preview channels to test the website on Firebase servers. CHANNEL_ID should be replaced as a identifier you want to use (e.g. preview)
 
 ```bash
-firebase hosting:channel:deploy CHANNEL_ID --project=$project
+firebase hosting:channel:deploy CHANNEL_ID --project=$PROJECT
 ```
 
 After confirming the preview, you can run the following command to serve it live:
 
 ```bash
-firebase hosting:clone $project:CHANNEL_ID $project:live
+firebase hosting:clone $PROJECT:CHANNEL_ID $PROJECT:live
 ```
 
 See the [official documentation](https://firebase.google.com/docs/hosting/test-preview-deploy) for more details on the testing and deployment process with Firebase.
