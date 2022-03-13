@@ -14,24 +14,83 @@
  * limitations under the License.
  */
 
-import { TextField, TextFieldProps } from "@mui/material";
-import { useMemo } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  OutlinedInput,
+  OutlinedInputProps,
+  Tooltip,
+} from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-export default function ResultField({ 
+export default function ResultField({
+  id,
   rows = 3,
-  children, ...props }: TextFieldProps) {
+  value,
+  placeholder,
+  label,
+}: OutlinedInputProps) {
+  const copyToClipboard = useCallback(() => {
+    navigator.clipboard.writeText(String(value)).then(() => {
+      setTooltipOpen(true);
+    });
+  }, [value]);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  const copyToClipboardMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleTooltipClose = useCallback(() => {
+    setTooltipOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!tooltipOpen) return;
+    const timer = setTimeout(() => setTooltipOpen(false), 3000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [tooltipOpen]);
+
   return (
-    <TextField
-      rows={rows}
-      multiline
-      fullWidth
-      InputProps={useMemo(
-        () => ({ readOnly: true, style: { fontFamily: "monospace" } }),
-        []
-      )}
-      {...props}
-    >
-      {children}
-    </TextField>
+    <FormControl variant="outlined" fullWidth>
+      <InputLabel htmlFor={id}>{label}</InputLabel>
+      <OutlinedInput
+        id={id}
+        rows={rows}
+        readOnly={true}
+        multiline
+        sx={{ fontFamily: "monospace" }}
+        value={value}
+        placeholder={placeholder}
+        label={label}
+        endAdornment={
+          <InputAdornment position="end">
+            <Tooltip
+              title="Copied!"
+              disableFocusListener
+              disableHoverListener
+              disableTouchListener
+              open={tooltipOpen}
+              onClose={handleTooltipClose}
+            >
+              <IconButton
+                aria-label="copy to clipboard"
+                onClick={copyToClipboard}
+                onMouseDown={copyToClipboardMouseDown}
+                edge="end"
+              >
+                <ContentCopyIcon />
+              </IconButton>
+            </Tooltip>
+          </InputAdornment>
+        }
+      />
+    </FormControl>
   );
 }

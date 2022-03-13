@@ -2102,6 +2102,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mui/icons-material@npm:^5.5.0":
+  version: 5.5.0
+  resolution: "@mui/icons-material@npm:5.5.0"
+  dependencies:
+    "@babel/runtime": ^7.17.2
+  peerDependencies:
+    "@mui/material": ^5.0.0
+    "@types/react": ^16.8.6 || ^17.0.0
+    react: ^17.0.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: ca2623e1e0ef88c9c4539dddfe44dff4c1f3a09838e8cb7f8ae61c02ebb7a5a869019d216a338c25db36cb712d9bdcc39ae7943f164bf3e082faf02052af2134
+  languageName: node
+  linkType: hard
+
 "@mui/material@npm:^5.4.2":
   version: 5.4.3
   resolution: "@mui/material@npm:5.4.3"
@@ -8916,6 +8932,7 @@ __metadata:
     "@emotion/styled": ^11.6.0
     "@fontsource/roboto": ^4.5.3
     "@magenta/music": ^1.23.1
+    "@mui/icons-material": ^5.5.0
     "@mui/material": ^5.4.2
     "@tensorflow/tfjs": ^2.8.6
     "@tsconfig/recommended": ^1.0.1

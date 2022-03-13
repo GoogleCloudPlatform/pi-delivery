@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-import React, { useState, useCallback, useContext, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 import { Pi } from "lib/pi";
 import ControlButtons from "components/ControlButtons";
 import DigitInput from "components/DigitInput";
@@ -29,10 +35,8 @@ import {
 import ResultField from "components/ResultField";
 import PiContext from "contexts/PiContext";
 
-const placeholderText = "Press 'Fetch'";
-
 export default function Fetch() {
-  const [text, setText] = useState(placeholderText);
+  const [text, setText] = useState("Click Fetch");
   const [startDigit, setStartDigit] = useState(0);
   const { radix, setRadix, length } = useContext(PiContext);
   const pi = useMemo(() => new Pi(), []);
@@ -85,8 +89,16 @@ export default function Fetch() {
       </Grid>
       <Grid item xs={12}>
         <ResultField
+          id="fetch-request"
+          label="Request URL"
+          rows={2}
+          value={`https://api.pi.delivery/v1/pi?start=${startDigit}&numberOfDigits=100&radix=${radix}`}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <ResultField
           id="fetch-result"
-          placeholder={"Click Fetch"}
+          label="Fetch Result"
           value={text}
         />
       </Grid>

@@ -74,6 +74,7 @@
     "@emotion/styled": "^11.6.0",
     "@fontsource/roboto": "^4.5.3",
     "@magenta/music": "^1.23.1",
+    "@mui/icons-material": "^5.5.0",
     "@mui/material": "^5.4.2",
     "@tensorflow/tfjs": "^2.8.6",
     "color-string": "^1.9.0",
