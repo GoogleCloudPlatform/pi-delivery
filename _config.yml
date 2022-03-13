@@ -1,0 +1,79 @@
+# ----
+# Site
+
+title: "A Pi API - Happy Pi Day"
+description: "Celebrate Pi Day with Pi delivered via an API"
+url: https://pi.delivery
+permalink: pretty
+pi_digits: 50000000000000
+baseurl: ''
+google_analytics_key: G-ER8XLZDYVS
+
+# -----
+# Build
+
+source: ./jekyll/
+destination: ./_site/
+timezone: Etc/UTC
+environment: development
+
+collections:
+  introduction:
+    title: Introduction
+    position_number: 1
+  demos:
+    title: Demos
+    position_number: 2
+  how:
+    title: How We Made This
+    position_number: 4
+  api:
+    title: REST API
+    position_number: 3
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+exclude:
+  - README.md
+  - LICENSE
+
+defaults:
+  -
+    scope:
+      path: ""
+    values:
+      layout: default
+
+# -----------
+# CloudCannon
+
+types:
+  - get
+  - put
+  - delete
+  - post
+
+languages:
+  bash: Bash
+  c: C
+  css: CSS
+  html: HTML
+  java: Java
+  javascript: JavaScript
+  json: JSON
+  php: PHP
+  python: Python
+  ruby: Ruby
+
+_options:
+  content_markdown:
+    format: p h4 h5 h6
+    bold: true
+    italic: true
+    link: true
+    bulletedlist: true
+    numberedlist: true
+    image: true
+    table: true
+    styles: /css/editor.css

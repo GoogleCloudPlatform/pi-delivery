@@ -1,0 +1,12 @@
+# main links
+main:
+  - title: "Quick-Start Guide"
+    url: https://mmistakes.github.io/minimal-mistakes/docs/quick-start-guide/
+
+home:
+  - title: "API Documentation"
+    url: /api
+
+demos:
+  - title: "Music"
+    url: /demos/music

@@ -1,0 +1,26 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "bugfixes": true
+      }
+    ],
+    ["@babel/preset-react", { "runtime": "automatic" }],
+    "@babel/preset-typescript"
+  ],
+
+  "plugins": [
+    [
+      "module-resolver",
+      {
+        "root": ["src/"]
+      }
+    ],
+    "@babel/plugin-transform-runtime"
+  ],
+
+  "targets": {
+    "esmodules": true
+  }
+}
