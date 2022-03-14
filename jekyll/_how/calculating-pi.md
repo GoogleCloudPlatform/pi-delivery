@@ -3,6 +3,8 @@ title: Calculating Pi
 position_number: 2
 ---
 
+In 2022, [Sara Ford](https://cloud.google.com/developers/advocates/sara-ford) and [Ben Bleything](https://twitter.com/bleything) [calculated 64 million digits of π](https://cloud.google.com/blog/topics/developers-practitioners/celebrating-pi-day-cloud-functions) using [Cloud Functions (2nd gen)](https://cloud.google.com/functions/docs/2nd-gen/overview).
+
 In 2019, [Emma Haruka Iwao](https://twitter.com/Yuryu) broke the Pi digits world record by computing 31,415,926,535,897 digits of Pi using Google Cloud Platform! Learn more details from Emma's [Calculating a record-breaking 31.4 trillion digits](https://cloud.google.com/blog/products/compute/calculating-31-4-trillion-digits-of-archimedes-constant-on-google-cloud) blog, and Alex Yee (creator of y-cruncher)'s [Google Cloud Topples the Pi record](http://www.numberworld.org/blogs/2019_3_14_pi_record/) article.
 
 Back in 2017, we used [y-cruncher](http://www.numberworld.org/y-cruncher/) to calculate 750 billion digits of Pi on Google Compute Engine. We used a 64-core instance, with 416GB of RAM, and tons of Local SSD + Persistent SSD.

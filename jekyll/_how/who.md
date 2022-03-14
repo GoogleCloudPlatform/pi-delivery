@@ -7,7 +7,7 @@ We are part of the [Google Cloud Platform Developer Advocacy team](https://cloud
 
 Since 2015, different members of the team worked on different Pi Day demos!
 
-In 2022, we updated the backend with [Cloud Functions (2nd gen)](https://cloud.google.com/functions/docs/2nd-gen/overview) and published the source code on [GitHub](https://github.com/GoogleCloudPlatform/pi-delivery). We also used Cloud Functions to calculate digits of Pi.
+In 2022, [Sara Ford](https://cloud.google.com/developers/advocates/sara-ford) and [Ben Bleything](https://twitter.com/bleything) [calculated 64 million digits of π](https://cloud.google.com/blog/topics/developers-practitioners/celebrating-pi-day-cloud-functions) using [Cloud Functions (2nd gen)](https://cloud.google.com/functions/docs/2nd-gen/overview). [Emma Haruka Iwao](https://cloud.google.com/developers/advocates/emma-haruka-iwao) rebuilt the API with Cloud Functions and the demos with React. We also made the source code available on [GitHub](https://github.com/GoogleCloudPlatform/pi-delivery).
 
 In 2020, we updated the Pi digits to 50 trillion digits, and added Machine Learning models to generate even better Pi music.
 
