@@ -7260,6 +7260,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"is-mobile@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "is-mobile@npm:3.1.0"
+  checksum: 487c6b4a0bb3b9b72ab05382e359a85794827f6fd070176c521bb0cb97f9106b4c631fe62ae37a9fdf54fe04644f00b47f72b55cf54490bd7fae84e50f738e79
+  languageName: node
+  linkType: hard
+
 "is-negative-zero@npm:^2.0.1":
   version: 2.0.2
   resolution: "is-negative-zero@npm:2.0.2"
@@ -8960,6 +8967,7 @@ __metadata:
     favicons-webpack-plugin: ^5.0.2
     fork-ts-checker-webpack-plugin: ^7.2.1
     html-webpack-plugin: ^5.5.0
+    is-mobile: ^3.1.0
     mini-css-extract-plugin: ^2.5.3
     note-midi: ^1.0.2
     npm-run-all: ^4.1.5
