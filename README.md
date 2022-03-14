@@ -132,7 +132,7 @@ The frontend is developed with [Jekyll](https://jekyllrb.com/) and [React](https
 ## Prerequisites
 
 You need [Yarn](https://yarnpkg.com/) and [Ruby](https://www.ruby-lang.org/en/) to compile the frontend.
-We use Yarn 2.
+We use Yarn 3 and Ruby 3.1.
 
 To install dependencies, run
 
