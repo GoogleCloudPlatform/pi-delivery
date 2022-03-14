@@ -16,6 +16,7 @@
 
 import React, { StrictMode } from "react";
 import * as ReactDOM from "react-dom";
+import mobile from "is-mobile";
 import "template";
 
 import "@fontsource/roboto/300.css";
@@ -41,9 +42,9 @@ ReactDOM.render(
   document.getElementById("react-root")
 );
 
+// These demos are available on mobile devices as well.
 const demos: Array<[React.ReactNode, string]> = [
   [<Fetch />, "fetch-demo"],
-  [<Coconet />, "coconet-demo"],
   [<Genie />, "genie-demo"],
   [<D3 />, "d3-demo"],
 ];
@@ -56,3 +57,15 @@ demos.forEach(([demo, id]) => {
     document.getElementById(id)
   );
 });
+
+// Coconet is too big for mobile devices.
+if (!mobile()) {
+  ReactDOM.render(
+    <StrictMode>
+      <Demo>
+        <Coconet />
+      </Demo>
+    </StrictMode>,
+    document.getElementById("coconet-demo")
+  );
+}
