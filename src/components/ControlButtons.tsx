@@ -23,6 +23,7 @@ interface PropType {
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
+  startButtonRef: React.RefObject<HTMLButtonElement>;
   started: boolean;
   disabled: boolean;
   startLabel: string;
@@ -39,6 +40,7 @@ function ControlButtons({
   onStart,
   onStop,
   onReset,
+  startButtonRef,
   started = false,
   disabled,
   startLabel = "Start",
@@ -48,6 +50,7 @@ function ControlButtons({
   return (
     <Stack direction="row" spacing={1}>
       <ControlButton
+        ref={startButtonRef}
         variant="contained"
         onClick={onStart}
         disabled={started || disabled}
