@@ -19,6 +19,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -37,6 +38,7 @@ import InViewContext from "contexts/InViewContext";
 import { DigitEventDetail, Pi, PiStream } from "lib/pi";
 import GeniePiano from "components/GeniePiano";
 import { bpmToDelayMs } from "lib/music";
+import * as Tone from "tone";
 
 const defaultBpm = 314;
 
@@ -49,6 +51,7 @@ export default function Genie() {
   const [bpm, setBpm] = useState(defaultBpm);
   const [ready, setReady] = useState(false);
   const [activeButton, setActiveButton] = useState<number>();
+  const startButtonRef = useRef<HTMLButtonElement>(null);
   const inView = useContext(InViewContext);
   const piStream = useMemo(() => new PiStream(), []);
 
@@ -121,6 +124,26 @@ export default function Genie() {
     };
   }, [onDigit, piStream]);
 
+  useEffect(() => {
+    if (!startButtonRef.current) return;
+    function resume() {
+      Tone.start();
+    }
+
+    const button = startButtonRef.current;
+    if (navigator.userAgent.match("(iPhone|iPad)")) {
+      document.addEventListener("touchend", resume, {once: true});
+      return () => {
+        document.addEventListener("touchend", resume);
+      }
+    }
+
+    button.addEventListener("click", resume, { once: true });
+    return () => {
+      button.removeEventListener("click", resume);
+    };
+  }, [startButtonRef]);
+
   const onReady = useCallback(() => {
     setReady(true);
   }, []);
@@ -167,6 +190,7 @@ export default function Genie() {
         <ControlButtons
           onStart={start}
           onStop={stop}
+          startButtonRef={startButtonRef}
           started={playing}
           disabled={!ready}
         />
