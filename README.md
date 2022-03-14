@@ -159,7 +159,7 @@ yarn prod
 
 ## Deploy
 
-We use (Firebase Hosting)(https://firebase.google.com/docs/hosting) to server the frontend files.
+We use [Firebase Hosting](https://firebase.google.com/docs/hosting) to server the frontend files.
 
 Firebase hosting is separately managed with the Firebase command.
 To install the tool, run the following command:
