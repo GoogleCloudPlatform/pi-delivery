@@ -333,6 +333,9 @@ hr {
 	width: 70%;
 	float: left;
 	padding: 0 50px;
+	@media (max-width: $mobile-break) {
+		padding: 0 20px;
+	}
 	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
 	-moz-box-sizing: border-box;		/* Firefox, other Gecko */
 	box-sizing: border-box;				 /* Opera/IE 8+ */
