@@ -1,0 +1,21 @@
+{
+  "name": "distpi",
+  "version": "1.0.0",
+  "description": "distributed pi calculation using Google Cloud Functions",
+  "license": "Apache-2.0",
+  "contributors": [
+    "Sara Ford <saraford@google.com>",
+    "Ben Bleything <bleything@google.com>"
+  ],
+  "homepage": "https://github.com/GoogleCloudPlatform/pi-delivery#readme",
+  "bugs": {
+    "url": "https://github.com/GoogleCloudPlatform/pi-delivery/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GoogleCloudPlatform/pi-delivery.git"
+  },
+  "main": "index.js",
+  "scripts": {
+  },
+}
