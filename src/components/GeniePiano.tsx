@@ -151,12 +151,10 @@ class Piano {
   }
 
   resize(octaves, totalWhiteNotes) {
-    // i honestly don't know why some flooring is good and some is bad sigh.
     const width = this.parent.getBoundingClientRect().width;
     const ratio = width / totalWhiteNotes;
     this.config.octaves = octaves;
-    this.config.whiteNoteWidth =
-      this.config.octaves > 6 ? ratio : Math.floor(ratio);
+    this.config.whiteNoteWidth = ratio;
     this.config.blackNoteWidth = (this.config.whiteNoteWidth * 2) / 3;
     this.svg.setAttribute("width", String(width));
     this.svg.setAttribute("height", String(this.config.whiteNoteHeight));
@@ -171,33 +169,31 @@ class Piano {
 
     const blackNoteIndexes = [1, 3, 6, 8, 10];
 
+    if (this.config.octaves < 6) {
+      index = 2 * CONSTANTS.NOTES_PER_OCTAVE;
+    }
     // First draw all the white notes.
     // Pianos start on an A (if we're using all the octaves);
-    if (this.config.octaves > 6) {
-      this.makeRect(
-        0,
-        x,
-        y,
-        this.config.whiteNoteWidth,
-        this.config.whiteNoteHeight,
-        "white",
-        "#141E30"
-      );
-      this.makeRect(
-        2,
-        this.config.whiteNoteWidth,
-        y,
-        this.config.whiteNoteWidth,
-        this.config.whiteNoteHeight,
-        "white",
-        "#141E30"
-      );
-      index = 3;
-      x = 2 * this.config.whiteNoteWidth;
-    } else {
-      // Starting 3 semitones up on small screens (on a C), and a whole octave up.
-      index = 3 + CONSTANTS.NOTES_PER_OCTAVE;
-    }
+    this.makeRect(
+      index,
+      x,
+      y,
+      this.config.whiteNoteWidth,
+      this.config.whiteNoteHeight,
+      "white",
+      "#141E30"
+    );
+    this.makeRect(
+      index + 2,
+      this.config.whiteNoteWidth,
+      y,
+      this.config.whiteNoteWidth,
+      this.config.whiteNoteHeight,
+      "white",
+      "#141E30"
+    );
+    index += 3;
+    x = 2 * this.config.whiteNoteWidth;
 
     // Draw the white notes.
     for (let o = 0; o < this.config.octaves; o++) {
@@ -218,35 +214,33 @@ class Piano {
       }
     }
 
-    if (this.config.octaves > 6) {
-      // And an extra C at the end (if we're using all the octaves);
-      this.makeRect(
-        index,
-        x,
-        y,
-        this.config.whiteNoteWidth,
-        this.config.whiteNoteHeight,
-        "white",
-        "#141E30"
-      );
+    // And an extra C at the end (if we're using all the octaves);
+    this.makeRect(
+      index,
+      x,
+      y,
+      this.config.whiteNoteWidth,
+      this.config.whiteNoteHeight,
+      "white",
+      "#141E30"
+    );
 
-      // Now draw all the black notes, so that they sit on top.
-      // Pianos start on an A:
-      this.makeRect(
-        1,
-        this.config.whiteNoteWidth - halfABlackNote,
-        y,
-        this.config.blackNoteWidth,
-        this.config.blackNoteHeight,
-        "black"
-      );
-      index = 3;
-      x = this.config.whiteNoteWidth;
-    } else {
-      // Starting 3 semitones up on small screens (on a C), and a whole octave up.
-      index = 3 + CONSTANTS.NOTES_PER_OCTAVE;
-      x = -this.config.whiteNoteWidth;
+    index = 1;
+    if (this.config.octaves < 6) {
+      index += 2 * CONSTANTS.NOTES_PER_OCTAVE;
     }
+    // Now draw all the black notes, so that they sit on top.
+    // Pianos start on an A:
+    this.makeRect(
+      index,
+      this.config.whiteNoteWidth - halfABlackNote,
+      y,
+      this.config.blackNoteWidth,
+      this.config.blackNoteHeight,
+      "black"
+    );
+    index += 2;
+    x = this.config.whiteNoteWidth;
 
     // Draw the black notes.
     for (let o = 0; o < this.config.octaves; o++) {
@@ -308,14 +302,14 @@ class Piano {
 }
 
 function getAvailableNotes(octaves: number): Array<number> {
-  const bonusNotes = octaves > 6 ? 4 : 0; // starts on an A, ends on a C.
+  const bonusNotes = 4; // starts on an A, ends on a C.
   const totalNotes = CONSTANTS.NOTES_PER_OCTAVE * octaves + bonusNotes;
   return Array<number>(totalNotes)
     .fill(0)
     .map((x, i) => {
       if (octaves > 6) return i;
-      // Starting 3 semitones up on small screens (on a C), and a whole octave up.
-      return i + 3 + CONSTANTS.NOTES_PER_OCTAVE;
+      // Start two octaves up.
+      return i + 2 * CONSTANTS.NOTES_PER_OCTAVE;
     });
 }
 
@@ -368,7 +362,8 @@ export default function GeniePiano(props: Props) {
     if (!width || !piano) return;
     const octaves = width > 700 ? 7 : 3;
     setOctaves(octaves);
-    const bonusNotes = octaves > 6 ? 4 : 0; // starts on an A, ends on a C.
+    piano.config.octaves = octaves;
+    const bonusNotes = 4; // starts on an A, ends on a C.
     const totalWhiteNotes =
       CONSTANTS.WHITE_NOTES_PER_OCTAVE * octaves + (bonusNotes - 1);
     piano.resize(octaves, totalWhiteNotes);
