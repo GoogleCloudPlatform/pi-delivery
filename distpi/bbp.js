@@ -50,7 +50,7 @@ function summation(j, n, d, mask) {
     return left + right;
 }
 
-module.exports = (offset, length) => {
+module.exports = (offset = 0, length = 100) => {
     console.log("calculating " + length + " digits starting at offset " + offset);
 
     const biOffset = BigInt(offset) - 1n;
