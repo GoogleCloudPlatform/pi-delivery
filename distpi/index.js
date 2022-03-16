@@ -18,16 +18,53 @@ exports.httpCalc = (req, res) => {
     let offset = req.query.offset || 0;
     let length = req.query.length || 100;
 
-    let calcResult = calculatePiChunk(offset, length);
-    res.send("dec: " + calcResult.decimal + " || hex: " + calcResult.hex);
+    let result = calculatePiChunk(offset, length);
+    res.send(result);
+}
+
+exports.pubsubCalc = (evt, ctx) => {
+    const message = Buffer.from(evt.data, "base64").toString();
+    const params  = JSON.parse(message);
+    const result = calculatePiChunk(params.start, params.size);
+}
+
+function summation(j, n, d, mask) {
+    const shift = d << 2n;
+
+    let left = 0n;
+
+    for(let k = 0n; k <= n; k++) {
+        let r = k * 8n + j;
+        let exponent = n - k;
+        left = (left + (modpow(16n, n - k, r) << shift) / r) & mask;
+    }
+
+    let right = 0n;
+
+    for(let k = n + 1n; ; k++) {
+        let rnew = right + 16n ** (d + n - k) / (k * 8n + j);
+        if(right === rnew) { break; }
+        right = rnew;
+    }
+
+    return left + right;
 }
 
 function calculatePiChunk(offset, length) {
     console.log("calculating " + length + " digits starting at offset " + offset);
 
-    const result = 123456;
-    const hexResult = result.toString(16);
+    const biOffset = BigInt(offset) - 1n;
+    const biLength = BigInt(length);
+    const mask = 16n ** biLength - 1n;
 
-    console.log("result: " + result + " (" + hexResult + ")");
-    return {"decimal": result, "hex": hexResult};
+    const t1 = summation(1n, biOffset, biLength, mask);
+    const t2 = summation(4n, biOffset, biLength, mask);
+    const t3 = summation(5n, biOffset, biLength, mask);
+    const t4 = summation(6n, biOffset, biLength, mask);
+
+    const total = (t1 * 4n) - (t2 * 2n) - t3 - t4;
+
+    const result = (total & mask).toString(16);
+    console.log("result: " + result);
+    return result;
 }
