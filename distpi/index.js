@@ -15,8 +15,8 @@
 const calculatePiChunk = require("./bbp");
 
 exports.httpCalc = (req, res) => {
-    let offset = req.query.offset || 0;
-    let length = req.query.length || 100;
+    let offset = req.query.offset || req.body.offset || 0;
+    let length = req.query.length || req.body.length || 100;
 
     let result = calculatePiChunk(offset, length);
     res.send(result);
@@ -25,5 +25,9 @@ exports.httpCalc = (req, res) => {
 exports.pubsubCalc = (evt, ctx) => {
     const message = Buffer.from(evt.data, "base64").toString();
     const params  = JSON.parse(message);
-    const result = calculatePiChunk(params.start, params.size);
+
+    let offset = params.start || 0;
+    let length = params.size  || 100;
+
+    const result = calculatePiChunk(offset, length);
 }
