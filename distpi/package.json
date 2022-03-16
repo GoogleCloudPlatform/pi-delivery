@@ -5,7 +5,8 @@
   "license": "Apache-2.0",
   "contributors": [
     "Sara Ford <saraford@google.com>",
-    "Ben Bleything <bleything@google.com>"
+    "Ben Bleything <bleything@google.com>",
+    "Emma Haruka Iwao <yuryu@google.com"
   ],
   "homepage": "https://github.com/GoogleCloudPlatform/pi-delivery#readme",
   "bugs": {
@@ -14,6 +15,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/GoogleCloudPlatform/pi-delivery.git"
+  },
+  "engines": {
+    "node": ">= 16"
   },
   "main": "index.js",
   "scripts": {
@@ -24,6 +28,7 @@
     "@google-cloud/functions-framework": "^3.0.0"
   },
   "devDependencies": {
+    "eslint-plugin-node": "^11.1.0",
     "jest": "^27.5.1"
   }
 }
