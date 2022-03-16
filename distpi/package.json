@@ -17,9 +17,13 @@
   },
   "main": "index.js",
   "scripts": {
-    "start": "functions-framework --target=httpCalc"
+    "start": "functions-framework --target=httpCalc",
+    "test": "jest"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^3.0.0"
+  },
+  "devDependencies": {
+    "jest": "^27.5.1"
   }
 }

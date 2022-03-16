@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const modpow = require("./modpow");
+
 exports.httpCalc = (req, res) => {
     let offset = req.query.offset || 0;
     let length = req.query.length || 100;
