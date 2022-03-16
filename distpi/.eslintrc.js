@@ -19,7 +19,12 @@ module.exports = {
     "eslint:recommended",
     "plugin:node/recommended",
   ],
+  "plugins": ["jest"],
   "parserOptions": {
     "ecmaVersion": 2020,
+  },
+  "root": true,
+  "env": {
+    "jest/globals": true
   },
 };

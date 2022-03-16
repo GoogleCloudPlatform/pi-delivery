@@ -14,35 +14,20 @@
 
 const modpow = require("./modpow");
 
-exports.httpCalc = (req, res) => {
-    let offset = req.query.offset || 0;
-    let length = req.query.length || 100;
-
-    let result = calculatePiChunk(offset, length);
-    res.send(result);
-}
-
-exports.pubsubCalc = (evt, ctx) => {
-    const message = Buffer.from(evt.data, "base64").toString();
-    const params  = JSON.parse(message);
-    const result = calculatePiChunk(params.start, params.size);
-}
-
 function summation(j, n, d, mask) {
     const shift = d << 2n;
 
     let left = 0n;
 
     for(let k = 0n; k <= n; k++) {
-        let r = k * 8n + j;
-        let exponent = n - k;
+        const r = k * 8n + j;
         left = (left + (modpow(16n, n - k, r) << shift) / r) & mask;
     }
 
     let right = 0n;
 
     for(let k = n + 1n; ; k++) {
-        let rnew = right + 16n ** (d + n - k) / (k * 8n + j);
+        const rnew = right + 16n ** (d + n - k) / (k * 8n + j);
         if(right === rnew) { break; }
         right = rnew;
     }
