@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const functions = require('@google-cloud/functions-framework');
 const calculatePiChunk = require("./bbp");
 
-exports.httpCalc = (req, res) => {
+functions.http('httpCalc', (req, res) => {
     let offset = req.query.offset || req.body.offset || 0;
     let length = req.query.length || req.body.length || 100;
 
     let result = calculatePiChunk(offset, length);
     res.send(result);
-}
+});
 
 exports.pubsubCalc = (evt, ctx) => {
     const message = Buffer.from(evt.data, "base64").toString();
