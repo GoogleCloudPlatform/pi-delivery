@@ -16,10 +16,10 @@ module.exports = (base, exponent, modulus) => {
   if (modulus === 1n) return 0n;
   let result = 1n;
   while (exponent > 0n) {
-    if (exponent % 2n === 1n) {
+    if (exponent & 1n) {
       result = (result * base) % modulus;
     }
-    exponent /= 2n;
+    exponent >>= 1n;
     base = (base * base) % modulus;
   }
   return result;
