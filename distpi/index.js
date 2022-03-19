@@ -16,10 +16,10 @@ const functions = require('@google-cloud/functions-framework');
 const calculatePiChunk = require("./bbp");
 
 functions.http('httpCalc', (req, res) => {
-    let offset = req.query.offset || req.body.offset || 0;
-    let length = req.query.length || req.body.length || 100;
+    const offset = req.query.offset || req.body.offset || 0;
+    const length = req.query.length || req.body.length || 100;
 
-    let result = calculatePiChunk(offset, length);
+    const result = calculatePiChunk(offset, length);
     res.send(result);
 });
 
@@ -27,8 +27,8 @@ exports.pubsubCalc = (evt, ctx) => {
     const message = Buffer.from(evt.data, "base64").toString();
     const params  = JSON.parse(message);
 
-    let offset = params.start || 0;
-    let length = params.size  || 100;
+    const offset = params.start || 0;
+    const length = params.size  || 100;
 
     const result = calculatePiChunk(offset, length);
 }
