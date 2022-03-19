@@ -23,6 +23,9 @@
     "webpack:build": "webpack build",
     "webpack:prod": "webpack build --config webpack.prod.js"
   },
+  "workspaces": [
+    "distpi"
+  ],
   "devDependencies": {
     "@babel/cli": "^7.17.6",
     "@babel/core": "^7.17.5",
