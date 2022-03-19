@@ -39,6 +39,9 @@ To get started, install dependencies and then run the tests:
 
 `index.js` contains a function called `httpCalc`. To test this locally, run
 `yarn start` and then open a browser to [localhost:8080](http://localhost:8080).
+You can request a different number of digits by adding `?length=<number>` to the
+URL. You can also use `offset=<number>` to request digits starting at a different
+position.
 
 Deployment
 --------------------------------------------------------------------------------
