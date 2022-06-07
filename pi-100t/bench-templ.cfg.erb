@@ -1,0 +1,52 @@
+//  y-cruncher Configuration File
+//  Version: 0.7.8 Build 9507
+//
+//  Load this from y-cruncher or run directly:
+//      y-cruncher config filename.cfg
+//
+//  If you're copying Windows file paths into here, be sure to replace
+//  all backslashes "\" with forward slashes "/". Backslash is an
+//  escape character.
+//
+
+{
+    Action : "BenchIO"
+    BenchIO : {
+        Memory : 851158609920
+        Parallelism : {
+            TaskDecomposition : 64
+            Framework : "cilk"
+            WorkerThreads : 64
+        }
+        Allocator : {
+            Allocator : "interleave-libnuma"
+            LockedPages : "attempt"
+            Nodes : [0 1]
+        }
+        FarMemory : {
+            Framework : "disk-raid0"
+            InterleaveWidth : 262144
+            BufferPerLane : 134217728
+            Checksums : "true"
+            RawIO : "true"
+            Lanes : [
+            <% count.times do |i| %>
+                {   //  Lane <%= i %>
+                    Path : "/mnt/disk<%= i %>"
+                    BufferAllocator : {
+                        Allocator : "interleave-libnuma"
+                        LockedPages : "attempt"
+                        Nodes : [1]
+                    }
+                    WorkerThreadCores : [32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63]
+                    WorkerThreadPriority : 2
+                }
+            <% end %>
+            ]
+        }
+        FarMemoryTuning : {
+            BytesPerSeek : <%= bytes_per_seek %>
+            ParallelAccess : "none"
+        }
+    }
+}
