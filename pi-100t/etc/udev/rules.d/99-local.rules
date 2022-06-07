@@ -1,0 +1,6 @@
+ACTION!="add|change", GOTO="rules_end"
+
+KERNEL=="sd*", SUBSYSTEM=="block", ATTR{queue/scheduler}="none"
+SUBSYSTEM=="scsi", ATTRS{vendor}=="LIO-ORG*", ATTR{timeout}="1800"
+
+LABEL="rules_end"
