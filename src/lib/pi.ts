@@ -15,8 +15,8 @@
  */
 
 const TotalDigits = {
-  10: 5e13,
-  16: 41_524_101_186_093,
+  10: 1e14,
+  16: 83_048_202_372_185,
 };
 
 export interface PiConfig {
