@@ -46,7 +46,6 @@ func (s ResultSet) Swap(i, j int) {
 // NewReader returns a new ResultSetReader with bucket.
 func (s ResultSet) NewReader(ctx context.Context, bucket obj.Bucket) *Reader {
 	return &Reader{
-		ctx:    ctx,
 		bucket: bucket,
 		set:    s,
 	}

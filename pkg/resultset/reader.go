@@ -29,7 +29,6 @@ import (
 type Reader struct {
 	set    ResultSet
 	bucket obj.Bucket
-	ctx    context.Context
 	off    int64
 	rd     io.ReadCloser
 	seeked bool
@@ -39,6 +38,16 @@ type Reader struct {
 var _ io.ReadSeekCloser = new(Reader)
 var _ io.ReaderAt = new(Reader)
 
+func readOnce(set ResultSet, bucket obj.Bucket, p []byte, off int64) (int, error) {
+	reader, err := newRangeReader(context.Background(), set, bucket, off, int64(len(p)))
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
+
+	return io.ReadFull(reader, p)
+}
+
 // ReadAt reads len(p) bytes of packed digits starting at byte result offset
 // (first byte in the result set is 0).
 // Returns io.EOF at the end of the result set.
@@ -46,23 +55,12 @@ func (r *Reader) ReadAt(p []byte, off int64) (int, error) {
 	n := 0
 
 	for n < len(p) {
-		reader, err := newRangeReader(r.ctx, r.set, r.bucket, off+int64(n), int64(len(p)-n))
+		read, err := readOnce(r.set, r.bucket, p[n:], off+int64(n))
+		n += read
+		if err == io.ErrUnexpectedEOF {
+			continue
+		}
 		if err != nil {
-			return n, err
-		}
-
-		for n < len(p) {
-			read, err := reader.Read(p[n:])
-			n += read
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				_ = reader.Close()
-				return n, err
-			}
-		}
-		if err := reader.Close(); err != nil {
 			return n, err
 		}
 	}
@@ -77,7 +75,7 @@ func (r *Reader) Read(p []byte) (int, error) {
 		if err := r.Close(); err != nil {
 			return 0, err
 		}
-		reader, err := newRangeReader(r.ctx, r.set, r.bucket, r.off, -1)
+		reader, err := newRangeReader(context.Background(), r.set, r.bucket, r.off, -1)
 		r.rd = reader
 		r.seeked = false
 		if err != nil {
@@ -120,7 +118,9 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 // Close closes the Reader.
 func (r *Reader) Close() error {
 	if r.rd != nil {
-		return r.rd.Close()
+		err := r.rd.Close()
+		r.rd = nil
+		return err
 	}
 	return nil
 }
