@@ -1,8 +1,13 @@
 ---
-title: Happy Pi Day!
+title: 100 Trillion Digits
 position_number: 1
 ---
 
-We've upgraded this website with a modern design! Now the backend runs in [Cloud Functions (2nd gen)](https://cloud.google.com/functions/docs/2nd-gen/overview) in three regions (US, Europe, Asia). To learn more about the architecture, check out the [Serving the Pi](#howserving) section. We've also published the entire [source code](https://github.com/googlecloudplatform/pi-delivery) of the demos and the infrastructure, including Terraform scripts on GitHub.
+![A computer screen with title "100 trillion digits :D" along with a pie with a banner of digits of pi](images/100t-hero.jpg)
 
-To learn more about the experiments for Pi Day 2022, check out our [blog article](https://cloud.google.com/blog/topics/developers-practitioners/celebrating-pi-day-cloud-functions).
+Records are made to be broken. In March 2022, we calculated 100 trillion digits of pi using [Compute Engine](https://cloud.google.com/compute). This is the second time we’ve used Google Cloud to calculate a record number of digits for the mathematical constant, tripling the number of digits in just three years after our world record with 31.4 trillion digits in 2019.
+
+Check out the [official blog](https://cloud.google.com/blog/products/compute/calculating-100-trillion-digits-of-pi-on-google-cloud) for more details about the technical details and architecture of the calculation. And for more on the history of calculating pi, check out [this post](https://blog.google/products/google-cloud/new-digit-pi-2022/) on The Keyword.
+
+We've updated the API to serve all of the 100 trillion digits of pi. We've also [published the entire results on Cloud Storage](https://storage.googleapis.com/pi100t/index.html) so you can download the files (caution: they are really big).
+
