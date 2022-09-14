@@ -180,19 +180,20 @@ Test the configuration (such as [firebase.json](firebase.json)) locally by runni
 
 ```bash
 export PROJECT=piaas-gcp
-firebase emulators:start --project=$PROJECT
+firebase emulators:start --project=${PROJECT}
 ```
 
-You can also create preview channels to test the website on Firebase servers. CHANNEL_ID should be replaced as a identifier you want to use (e.g. preview)
+You can also create preview channels to test the website on Firebase servers. `CHANNEL_ID` should be set to an identifier you want to use (e.g. preview)
 
 ```bash
-firebase hosting:channel:deploy CHANNEL_ID --project=$PROJECT
+export CHANNEL_ID=preview
+firebase hosting:channel:deploy ${CHANNEL_ID} --project=${PROJECT}
 ```
 
 After confirming the preview, run the following command to serve it live:
 
 ```bash
-firebase hosting:clone ${PROJECT}:preview ${PROJECT}:live
+firebase hosting:clone ${PROJECT}:${CHANNEL_ID} ${PROJECT}:live
 ```
 
 See the [official documentation](https://firebase.google.com/docs/hosting/test-preview-deploy) for more details on the testing and deployment process with Firebase.
