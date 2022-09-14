@@ -40,7 +40,7 @@ export GCF_API_SA=sa-functions-api@piaas-gcp.iam.gserviceaccount.com
 ```bash
 gcloud beta functions deploy api-pi-staging --gen2 --runtime go116 --trigger-http --entry-point Get --source . \
   --stage-bucket=$STAGE_BUCKET --ingress-settings=internal-and-gclb --region=$REGIONS[1] \
-  --allow-unauthenticated --service-account=$GCF_API_SA
+  --allow-unauthenticated --service-account=$GCF_API_SA --project=$PROJECT
 ```
 
 The staging API is accessible via `api.staging.pi.delivery`. e.g.
@@ -58,7 +58,7 @@ for R in $REGIONS; \
   gcloud beta functions deploy api-pi --gen2 --runtime go116 --trigger-http --entry-point Get --source . \
     --stage-bucket=$STAGE_BUCKET --ingress-settings=internal-and-gclb --region=$R \
     --allow-unauthenticated --service-account=$GCF_API_SA \
-    --min-instances=1
+    --min-instances=1  --project=$PROJECT
 ```
 
 The production API is accessible via `api.pi.delivery`.
@@ -176,21 +176,21 @@ The files will be generated in `dist` directory.
 yarn prod
 ```
 
-You can test the configuration (such as [firebase.json](firebase.json)) locally by running:
+Test the configuration (such as [firebase.json](firebase.json)) locally by running:
 
 ```bash
 export PROJECT=piaas-gcp
 firebase emulators:start --project=${PROJECT}
 ```
 
-You can also create preview channels to test the website on Firebase servers. CHANNEL_ID should be set as a identifier you want to use (e.g. preview)
+You can also create preview channels to test the website on Firebase servers. `CHANNEL_ID` should be set to an identifier you want to use (e.g. preview)
 
 ```bash
 export CHANNEL_ID=preview
 firebase hosting:channel:deploy ${CHANNEL_ID} --project=${PROJECT}
 ```
 
-After confirming the preview, you can run the following command to serve it live:
+After confirming the preview, run the following command to serve it live:
 
 ```bash
 firebase hosting:clone ${PROJECT}:${CHANNEL_ID} ${PROJECT}:live

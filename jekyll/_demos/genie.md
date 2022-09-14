@@ -15,7 +15,7 @@ position_number: 1
   Genie to map to the next logical note for great sounding Pi.
 </p>
 <p>
-  With 50 trillion digits and playing at 314 BPM, it'll play for 302 758.898
+  With 100 trillion digits and playing at 314 BPM, it'll play for 605,516
   years!
 </p>
 
