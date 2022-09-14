@@ -26,12 +26,12 @@
     "test": "jest"
   },
   "dependencies": {
-    "@google-cloud/functions-framework": "^3.0.0"
+    "@google-cloud/functions-framework": "^3.1.2"
   },
   "devDependencies": {
-    "eslint": "^8.11.0",
-    "eslint-plugin-jest": "^26.1.1",
+    "eslint": "^8.23.1",
+    "eslint-plugin-jest": "^27.0.4",
     "eslint-plugin-node": "^11.1.0",
-    "jest": "^27.5.1"
+    "jest": "^29.0.3"
   }
 }

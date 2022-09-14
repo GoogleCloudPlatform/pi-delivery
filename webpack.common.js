@@ -15,12 +15,13 @@
  */
 
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const FaviconsWebpackPlugin = require("favicons-webpack-plugin");
+const WebpackFavicons = require("webpack-favicons");
 const CopyPlugin = require("copy-webpack-plugin");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 const webpack = require("webpack");
 const packageJson = require("./package.json");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+const path = require("path");
 
 const siteUrl = "https://pi.delivery";
 
@@ -34,17 +35,17 @@ module.exports = {
       template: "_site/index.html",
       scriptLoading: "module",
     }),
-    new FaviconsWebpackPlugin({
-      logo: "./src/logo.png",
-      prefix: "assets/",
-      inject: true,
-      favicons: {
-        appName: packageJson.name,
-        appDescription: packageJson.description,
-        developerName: "Cloud Developer Relations",
-        theme_color: "#0288D1",
-        background: "#fff",
-        version: packageJson.version,
+    new WebpackFavicons({
+      src: "./src/logo.png",
+      path: "assets",
+      theme_color: "#0288D1",
+      background: "#fff",
+      appName: packageJson.name,
+      appDescription: packageJson.description,
+      developerName: "Cloud Developer Relations",
+      version: packageJson.version,
+      icons: {
+        favicons: true,
       },
     }),
     new CopyPlugin({
@@ -98,6 +99,7 @@ module.exports = {
     extensions: [".tsx", ".ts", ".js"],
   },
   output: {
+    path: path.join(__dirname, "dist"),
     clean: true,
     publicPath: "",
   },
