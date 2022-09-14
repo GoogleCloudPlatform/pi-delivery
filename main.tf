@@ -22,11 +22,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 4.13.0"
+      version = "~> 4.36.0"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = "~> 4.13.0"
+      version = "~> 4.36.0"
     }
   }
 }
@@ -56,7 +56,7 @@ data "google_cloudfunctions2_function" "api_get" {
 */
 
 resource "google_storage_bucket" "functions_staging" {
-  name = "piaas-gcp-gcf-staging"
+  name     = "piaas-gcp-gcf-staging"
   location = "US"
 
   uniform_bucket_level_access = true
@@ -178,6 +178,7 @@ resource "google_compute_backend_service" "api_func_pi_prod" {
 
   name                  = "api-func-pi-prod-backend-${random_id.backend.hex}"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  security_policy       = "api-prod"
 
   dynamic "backend" {
     for_each = google_compute_region_network_endpoint_group.api_func_pi_prod
@@ -188,7 +189,7 @@ resource "google_compute_backend_service" "api_func_pi_prod" {
 
   log_config {
     enable      = true
-    sample_rate = 1.0
+    sample_rate = 0.2
   }
 
   lifecycle {
@@ -201,6 +202,7 @@ resource "google_compute_backend_service" "api_func_pi_staging" {
 
   name                  = "api-func-pi-staging-backend-${random_id.backend.hex}"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  security_policy       = "api-staging"
 
   backend {
     group = google_compute_region_network_endpoint_group.api_func_pi_staging.id
@@ -220,6 +222,7 @@ resource "google_compute_backend_service" "api_not_found" {
   provider              = google-beta
   name                  = "api-not-found-backend"
   load_balancing_scheme = "EXTERNAL_MANAGED"
+  security_policy       = "api-prod"
 
   backend {
     group = google_compute_region_network_endpoint_group.api_not_found.id
