@@ -35,7 +35,7 @@ import (
 var _serv *service.Service
 var _servOnce sync.Once
 
-var maxDigitsPerRequest = 1000
+var maxDigitsPerRequest = 100000
 var bucketName = index.BucketName
 
 const (
