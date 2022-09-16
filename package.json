@@ -92,7 +92,6 @@
     "tone": "^14.8.42"
   },
   "resolutions": {
-    "favicons": "^7.0.0",
     "tone": "latest",
     "static-module": "^3.0.4",
     "@magenta/music": "patch:@magenta/music@npm:1.23.1#.yarn/patches/@magenta-music-npm-1.23.1-06d89c1959"
