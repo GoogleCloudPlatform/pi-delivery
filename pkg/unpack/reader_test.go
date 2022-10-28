@@ -22,111 +22,150 @@ import (
 	"testing/iotest"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/googlecloudplatform/pi-delivery/pkg/cached"
-	"github.com/googlecloudplatform/pi-delivery/pkg/obj"
-	mock_obj "github.com/googlecloudplatform/pi-delivery/pkg/obj/mocks"
 	"github.com/googlecloudplatform/pi-delivery/pkg/resultset"
 	"github.com/googlecloudplatform/pi-delivery/pkg/tests"
 	"github.com/googlecloudplatform/pi-delivery/pkg/ycd"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestUnpack_UnpackReader(t *testing.T) {
+func TestUnpack_SingleBlock(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
+		set       resultset.ResultSet
 		testBytes []byte
-		expected  []byte
-		radix     int
+		want      []byte
 	}{
-		{testDecBytes, testDecExpected, 10},
-		{testHexBytes, testHexExpected, 16},
-	}
-	mockCtrl := gomock.NewController(t)
-	ctx := context.Background()
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(fmt.Sprintf("Radix %d", tc.radix), func(t *testing.T) {
-			t.Parallel()
-
-			testSet := resultset.ResultSet{
+		{
+			set: resultset.ResultSet{
 				{
 					Header: &ycd.Header{
-						Radix:       tc.radix,
+						Radix:       10,
 						TotalDigits: int64(0),
-						BlockSize:   int64(len(tc.expected)),
+						BlockSize:   int64(len(wantUnpackedDec)),
 						BlockID:     int64(0),
 						Length:      198,
 					},
 					Name:             "Pi - Dec - Chudnovsky/Pi - Dec - Chudnovsky - 0.ycd",
 					FirstDigitOffset: 201,
 				},
+			},
+			testBytes: testDecBytes,
+			want:      wantUnpackedDec,
+		},
+		{
+			set: resultset.ResultSet{
+				{
+					Header: &ycd.Header{
+						Radix:       16,
+						TotalDigits: int64(0),
+						BlockSize:   int64(len(wantUnpackedHex)),
+						BlockID:     int64(0),
+						Length:      198,
+					},
+					Name:             "Pi - Hex - Chudnovsky/Pi - Hex - Chudnovsky - 0.ycd",
+					FirstDigitOffset: 201,
+				},
+			},
+			testBytes: testHexBytes,
+			want:      wantUnpackedHex,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(fmt.Sprintf("Radix %d", tc.set.Radix()), func(t *testing.T) {
+			t.Parallel()
+			mockCtrl := gomock.NewController(t)
+			ctx := context.Background()
+			bucket := tests.NewMockBucket(ctx, mockCtrl, tc.set, tc.testBytes)
+
+			ur := tc.set.NewReader(ctx, bucket)
+			t.Cleanup(func() {
+				if err := ur.Close(); err != nil {
+					t.Errorf("Close() failed: %v", err)
+				}
+			})
+
+			rd := NewReader(ctx, cached.NewCachedReader(ctx, ur))
+			n, err := rd.Read(nil)
+			if err != nil {
+				t.Errorf("Read(nil) failed: %v", err)
+			}
+			if n != 0 {
+				t.Errorf("Read(nil) = got %d, want 0", n)
+			}
+			dpw := tc.set.DigitsPerWord()
+			testCases := []struct {
+				n       int
+				seek    bool
+				off     int64
+				whence  int
+				wantN   int
+				wantOff int64
+				want    []byte
+			}{
+				{
+					n:     dpw,
+					wantN: dpw,
+					want:  tc.want[:dpw],
+				},
+				{
+					n:     1,
+					wantN: 1,
+					want:  tc.want[dpw : dpw+1],
+				},
+				{
+					n:     1,
+					wantN: 1,
+					want:  tc.want[dpw+1 : dpw+2],
+				},
+				{
+					n:      10,
+					wantN:  10,
+					seek:   true,
+					off:    0,
+					whence: io.SeekStart,
+					want:   tc.want[:10],
+				},
+			}
+			for _, tc := range testCases {
+				t.Run(fmt.Sprintf("Read %d bytes", tc.n), func(t *testing.T) {
+					if tc.seek {
+						got, err := rd.Seek(tc.off, tc.whence)
+						if err != nil {
+							t.Errorf("Seek(%d, %d) failed: %v", tc.off, tc.whence, err)
+						}
+						if got != tc.wantOff {
+							t.Errorf("Seek(%d, %d) = got %d, want %d", tc.off, tc.whence, got, tc.wantOff)
+						}
+					}
+					buf := make([]byte, len(tc.want))
+					n, err := rd.Read(buf)
+					if err != nil {
+						t.Errorf("Read(%p) failed: %v", buf, err)
+					}
+					if got := n; got != tc.wantN {
+						t.Errorf("Read(%p): n = got %d, want %d", buf, got, tc.wantN)
+					}
+					if diff := cmp.Diff(tc.want, buf); diff != "" {
+						t.Errorf("Read(%p) = (-want, +got):\n%s", buf, diff)
+					}
+				})
 			}
 
-			bucket := mock_obj.NewMockBucket(mockCtrl)
-			obj := mock_obj.NewMockObject(mockCtrl)
+			got, err := rd.Seek(0, io.SeekStart)
+			if err != nil {
+				t.Errorf("Seek(0, io.SeekStart) failed: %v", err)
+			}
+			if got != 0 {
+				t.Errorf("Seek(0, io.SeekStart): n = got %d, want 0", got)
+			}
 
-			bucket.EXPECT().Object(testSet[0].Name).Return(obj).AnyTimes()
-
-			obj.EXPECT().NewRangeReader(
-				gomock.AssignableToTypeOf(ctx),
-				gomock.Any(),
-				gomock.Any(),
-			).DoAndReturn(
-				func(ctx context.Context, off, length int64) (io.ReadCloser, error) {
-					return tests.NewTestReader(testSet, 0, tc.testBytes, off, length)
-				},
-			).AnyTimes()
-
-			rr := testSet.NewReader(ctx, bucket)
-			require.NotNil(t, rr)
-			defer assert.NoError(t, rr.Close())
-
-			reader := NewReader(ctx, cached.NewCachedReader(ctx, rr))
-			require.NotNil(t, reader)
-
-			buf := make([]byte, len(tc.expected))
-
-			n, err := reader.Read(nil)
-			assert.Zero(t, n)
-			assert.NoError(t, err)
-
-			dpw := ycd.DigitsPerWord(tc.radix)
-
-			n, err = reader.Read(buf[:dpw])
-			assert.Equal(t, dpw, n)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expected[:dpw], buf[:dpw])
-
-			n, err = reader.Read(buf[:1])
-			assert.Equal(t, 1, n)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expected[dpw:dpw+1], buf[:1])
-
-			n, err = reader.Read(buf[:1])
-			assert.Equal(t, 1, n)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expected[dpw+1:dpw+2], buf[:1])
-
-			off, err := reader.Seek(0, io.SeekStart)
-			assert.Zero(t, off)
-			assert.NoError(t, err)
-
-			n, err = reader.ReadAt(buf[:10], 0)
-			assert.Equal(t, 10, n)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expected[:10], buf[:10])
-
-			buf, err = io.ReadAll(reader)
-			assert.Equal(t, len(tc.expected), len(buf))
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expected, buf)
-
-			off, err = reader.Seek(0, io.SeekStart)
-			assert.Zero(t, off)
-			assert.NoError(t, err)
-
-			assert.NoError(t, iotest.TestReader(reader, tc.expected))
+			if err := iotest.TestReader(rd, tc.want); err != nil {
+				t.Errorf("iotest.TestReader() failed: %v", err)
+			}
 		})
 	}
 }
@@ -184,54 +223,52 @@ func TestUnpack_ReaderWithBoundaries(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	ctx := context.Background()
 
-	bucket := mock_obj.NewMockBucket(mockCtrl)
+	bucket := tests.NewMockBucket(ctx, mockCtrl, testSet, testDecMultipleBlocks)
 
-	bucket.EXPECT().Object(gomock.Any()).DoAndReturn(func(name string) obj.Object {
-		object := mock_obj.NewMockObject(mockCtrl)
-
-		for k, v := range testSet {
-			if v.Name == name {
-				object.EXPECT().NewRangeReader(
-					gomock.AssignableToTypeOf(ctx),
-					gomock.Any(),
-					gomock.Any(),
-				).DoAndReturn(
-					func(ctx context.Context, off, length int64) (io.ReadCloser, error) {
-						return tests.NewTestReader(testSet, k, testDecMultipleBlocks, off, length)
-					},
-				).AnyTimes()
-				break
-			}
+	ur := testSet.NewReader(ctx, bucket)
+	t.Cleanup(func() {
+		if err := ur.Close(); err != nil {
+			t.Errorf("Close() failed: %v", err)
 		}
-
-		return object
-	}).AnyTimes()
-
-	rr := testSet.NewReader(ctx, bucket)
-	require.NotNil(t, rr)
-	defer assert.NoError(t, rr.Close())
+	})
 
 	// Can't use the cache here because the data is different.
-	reader := NewReader(ctx, rr)
-	require.NotNil(t, reader)
-
+	rd := NewReader(ctx, ur)
 	buf := make([]byte, totalDigits)
 
-	n, err := reader.ReadAt(buf, 0)
-	assert.NoError(t, err)
-	assert.Equal(t, totalDigits, n)
-	assert.Equal(t, buf, testDecExpected[:totalDigits])
+	n, err := rd.ReadAt(buf, 0)
+	if err != nil {
+		t.Errorf("ReadAt(buf, 0) failed: %v", err)
+	}
+	if n != totalDigits {
+		t.Errorf("ReadAt(buf, 0): n = got %d, want %d", n, totalDigits)
+	}
+	if diff := cmp.Diff(wantUnpackedDec[:totalDigits], buf); diff != "" {
+		t.Errorf("ReadAt(buf, 0) = (-want, +got):\n%s", diff)
+	}
 
-	n, err = io.ReadFull(reader, buf)
-	assert.NoError(t, err)
-	assert.Equal(t, totalDigits, n)
-	assert.Equal(t, buf, testDecExpected[:totalDigits])
+	n, err = io.ReadFull(rd, buf)
+	if err != nil {
+		t.Errorf("ReadFull() failed: %v", err)
+	}
+	if n != totalDigits {
+		t.Errorf("ReadFull(): n = got %d, want %d", n, totalDigits)
+	}
+	if diff := cmp.Diff(wantUnpackedDec[:totalDigits], buf); diff != "" {
+		t.Errorf("ReadFull() = (-want, +got):\n%s", diff)
+	}
 
-	off, err := reader.Seek(0, io.SeekStart)
-	assert.NoError(t, err)
-	assert.Zero(t, off)
+	off, err := rd.Seek(0, io.SeekStart)
+	if err != nil {
+		t.Errorf("Seek(0, io.SeekStart) failed: %v", err)
+	}
+	if off != 0 {
+		t.Errorf("Seek(0, io.SeekStart) = got %d, want 0", off)
+	}
 
-	assert.NoError(t, iotest.TestReader(reader, testDecExpected[:totalDigits]))
+	if err := iotest.TestReader(rd, wantUnpackedDec[:totalDigits]); err != nil {
+		t.Errorf("iotest.TestReader() failed: %v", err)
+	}
 }
 
 var testDecBytes = []byte{
@@ -301,7 +338,7 @@ var testDecBytes = []byte{
 	0xda, 0x55, 0xba, 0x7e, 0xb6, 0xbc, 0xf4, 0x03, 0x9c, 0x8a, 0x29, 0x4d, 0xa6, 0x55, 0xa1, 0x5d,
 }
 
-var testDecExpected = []byte(
+var wantUnpackedDec = []byte(
 	"1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679" +
 		"8214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196" +
 		"4428810975665933446128475648233786783165271201909145648566923460348610454326648213393607260249141273" +
@@ -395,7 +432,7 @@ var testHexBytes = []byte{
 	0x41, 0x4a, 0x73, 0x4e, 0x68, 0x19, 0xc8, 0x11, 0x4a, 0xa9, 0x14, 0x7b, 0xca, 0x2d, 0x47, 0xb3,
 }
 
-var testHexExpected = []byte(
+var wantUnpackedHex = []byte(
 	"243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e6c89452821e638d01377be5466cf34e90c6cc0ac" +
 		"29b7c97c50dd3f84d5b5b54709179216d5d98979fb1bd1310ba698dfb5ac2ffd72dbd01adfb7b8e1afed6a267e96ba7c9045" +
 		"f12c7f9924a19947b3916cf70801f2e2858efc16636920d871574e69a458fea3f4933d7e0d95748f728eb658718bcd588215" +

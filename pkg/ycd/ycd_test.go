@@ -15,10 +15,11 @@
 package ycd
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/google/go-cmp/cmp"
 )
 
 const rawTestDataHex = `#Compressed Digit File
@@ -55,49 +56,77 @@ EndHeader
 
 `
 
-func TestYCD_ParseHex(t *testing.T) {
-	crlf := strings.ReplaceAll(rawTestDataHex, "\n", "\r\n")
-	crlf += "\x00"
+func TestYCD_Parse(t *testing.T) {
+	t.Parallel()
 
-	ycd, err := Parse(strings.NewReader(crlf))
-	if err != nil {
-		t.Fatalf("failed to parse the test data: %v", err)
+	testCases := []struct {
+		name string
+		raw  string
+		want *YCDFile
+	}{
+		{
+			name: "hex",
+			raw:  strings.ReplaceAll(rawTestDataHex, "\n", "\r\n") + "\x00",
+			want: &YCDFile{
+				Header: &Header{
+					FileVersion: "1.1.0",
+					Radix:       16,
+					FirstDigits: "3.243f6a8885a308d313198a2e03707344a4093822299f31d008",
+					TotalDigits: 0,
+					BlockSize:   1000000,
+					BlockID:     0,
+					Length:      192,
+				},
+				FirstDigitOffset: 195,
+			},
+		},
+		{
+			name: "dec",
+			raw:  strings.ReplaceAll(rawTestDataDec, "\n", "\r\n") + "\x00",
+			want: &YCDFile{
+				Header: &Header{
+					FileVersion: "1.1.0",
+					Radix:       10,
+					FirstDigits: "3.14159265358979323846264338327950288419716939937510",
+					TotalDigits: 50000001,
+					BlockSize:   1000000,
+					BlockID:     50,
+					Length:      200,
+				},
+				FirstDigitOffset: 203,
+			},
+		},
 	}
-	if assert.NotNil(t, ycd, "Parse should return a non-nil value") &&
-		assert.NotNil(t, ycd.Header, "Header should return not be nil") {
-		assert.Equal(t, "1.1.0", ycd.Header.FileVersion)
-		assert.Equal(t, 16, ycd.Header.Radix)
-		assert.Equal(t, "3.243f6a8885a308d313198a2e03707344a4093822299f31d008", ycd.Header.FirstDigits)
-		assert.Zero(t, ycd.Header.TotalDigits)
-		assert.Equal(t, int64(1000000), ycd.Header.BlockSize)
-		assert.Zero(t, ycd.Header.BlockID)
-		assert.Equal(t, 192, ycd.Header.Length)
-		assert.Equal(t, 195, ycd.FirstDigitOffset)
-	}
-}
-
-func TestYCD_ParseDec(t *testing.T) {
-	crlf := strings.ReplaceAll(rawTestDataDec, "\n", "\r\n")
-	crlf += "\x00"
-
-	ycd, err := Parse(strings.NewReader(crlf))
-	if err != nil {
-		t.Fatalf("failed to parse the test data: %v", err)
-	}
-	if assert.NotNil(t, ycd, "Parse should return a non-nil value") &&
-		assert.NotNil(t, ycd.Header, "Header should return not be nil") {
-		assert.Equal(t, "1.1.0", ycd.Header.FileVersion)
-		assert.Equal(t, 10, ycd.Header.Radix)
-		assert.Equal(t, "3.14159265358979323846264338327950288419716939937510", ycd.Header.FirstDigits)
-		assert.Equal(t, int64(50000001), ycd.Header.TotalDigits)
-		assert.Equal(t, int64(1000000), ycd.Header.BlockSize)
-		assert.Equal(t, int64(50), ycd.Header.BlockID)
-		assert.Equal(t, 200, ycd.Header.Length)
-		assert.Equal(t, 203, ycd.FirstDigitOffset)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Parse(strings.NewReader(tc.raw))
+			if err != nil {
+				t.Errorf("Parse() failed: %v", err)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("Parse() = (-want, +got):\n%s", diff)
+			}
+		})
 	}
 }
 
 func TestYCD_DigitsPerWord(t *testing.T) {
-	assert.Equal(t, 19, DigitsPerWord(10))
-	assert.Equal(t, 16, DigitsPerWord(16))
+	t.Parallel()
+
+	testCases := []struct {
+		radix int
+		want  int
+	}{
+		{10, 19},
+		{16, 16},
+	}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Radix %d", tc.radix), func(t *testing.T) {
+			got := DigitsPerWord(tc.radix)
+			if got != tc.want {
+				t.Errorf("DigitsPerWord(%d) = got %d, want %d", tc.radix, got, tc.want)
+			}
+		})
+	}
 }

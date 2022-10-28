@@ -20,17 +20,20 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/goccy/go-json"
-	"github.com/stretchr/testify/assert"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestRest_Get(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		radix    int
 		start, n int64
-		expected string
+		want     string
 	}{
 		{10, 0, 0, ""},
 		{10, 1, 0, ""},
@@ -53,35 +56,46 @@ func TestRest_Get(t *testing.T) {
 		t.Run(fmt.Sprintf("Radix %d Start %d N %d", tc.radix, tc.start, tc.n), func(t *testing.T) {
 			t.Parallel()
 
-			request := httptest.NewRequest(http.MethodGet, "/Get", nil)
-			q := request.URL.Query()
+			req := httptest.NewRequest(http.MethodGet, "/Get", nil)
+			q := req.URL.Query()
 			q.Add("start", strconv.FormatInt(tc.start, 10))
 			q.Add("numberOfDigits", strconv.FormatInt(tc.n, 10))
 			if tc.radix == 16 {
 				q.Add("radix", strconv.Itoa(tc.radix))
 			}
-			request.URL.RawQuery = q.Encode()
+			req.URL.RawQuery = q.Encode()
 
-			responseRecorder := httptest.NewRecorder()
-			Get(responseRecorder, request)
+			recorder := httptest.NewRecorder()
+			Get(recorder, req)
 
-			res := responseRecorder.Result()
-
-			assert.Equal(t, http.StatusOK, res.StatusCode)
-			assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
-			assert.Equal(t, "*", res.Header.Get("Access-Control-Allow-Origin"))
-			actual := new(GetResponse)
-			assert.NoError(t, json.NewDecoder(res.Body).Decode(actual))
-			assert.Equal(t, tc.expected, actual.Content)
+			res := recorder.Result()
+			if got, want := res.StatusCode, http.StatusOK; got != want {
+				t.Errorf("StatusCode = got %d, want %d", got, want)
+			}
+			if got, want := res.Header.Get("Content-Type"), "application/json"; got != want {
+				t.Errorf("Content-Type = got %s, want %s", got, want)
+			}
+			if got, want := res.Header.Get("Access-Control-Allow-Origin"), "*"; got != want {
+				t.Errorf("Access-Control-Allow-Origin = got %s, want %s", got, want)
+			}
+			got := &GetResponse{}
+			if err := json.NewDecoder(res.Body).Decode(got); err != nil {
+				t.Errorf("JSON Decode() failed: %v", err)
+			}
+			if diff := cmp.Diff(tc.want, got.Content); diff != "" {
+				t.Errorf("Content = (-want, +got):\n%s", diff)
+			}
 		})
 	}
 }
 
 func TestGet_BadRequests(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		radix    string
 		start, n string
-		message  string
+		want     string
 	}{
 		{"42", "0", "", "radix"},
 		{"", "-1", "", "negative"},
@@ -94,41 +108,62 @@ func TestGet_BadRequests(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		tc := tc
-		t.Run(fmt.Sprintf("Radix %v Start %v N %v",
-			tc.radix, tc.start, tc.n), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Radix %v Start %v N %v", tc.radix, tc.start, tc.n), func(t *testing.T) {
 			t.Parallel()
 
-			request := httptest.NewRequest(http.MethodGet, "/Get", nil)
-			q := request.URL.Query()
+			req := httptest.NewRequest(http.MethodGet, "/Get", nil)
+			q := req.URL.Query()
 			q.Add("start", tc.start)
 			q.Add("numberOfDigits", tc.n)
 			q.Add("radix", tc.radix)
-			request.URL.RawQuery = q.Encode()
+			req.URL.RawQuery = q.Encode()
 
-			responseRecorder := httptest.NewRecorder()
-			Get(responseRecorder, request)
+			recorder := httptest.NewRecorder()
+			Get(recorder, req)
 
-			res := responseRecorder.Result()
-			assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-			assert.Equal(t, "text/plain", res.Header.Get("Content-Type"))
-			assert.Equal(t, "*", res.Header.Get("Access-Control-Allow-Origin"))
-			body, err := io.ReadAll(res.Body)
-			assert.NoError(t, err)
-			assert.Contains(t, string(body), tc.message)
-			assert.NotContains(t, string(body), "\"content\"")
+			res := recorder.Result()
+			if got, want := res.StatusCode, http.StatusBadRequest; got != want {
+				t.Errorf("StatusCode = got %d, want %d", got, want)
+			}
+			if got, want := res.Header.Get("Content-Type"), "text/plain"; got != want {
+				t.Errorf("Content-Type = got %s, want %s", got, want)
+			}
+			if got, want := res.Header.Get("Access-Control-Allow-Origin"), "*"; got != want {
+				t.Errorf("Access-Control-Allow-Origin = got %s, want %s", got, want)
+			}
+			got, err := io.ReadAll(res.Body)
+			if err != nil {
+				t.Errorf("ReadAll() failed: %v", err)
+			}
+			if !strings.Contains(string(got), tc.want) {
+				t.Errorf("Response got %s, should contain %s", string(got), tc.want)
+			}
+			if strings.Contains(string(got), "\"content\"") {
+				t.Errorf("Response got %s, shouldn't contain %s", string(got), "\"content\"")
+			}
 		})
 	}
 }
 
 func TestRest_NotFound(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/NotFound", nil)
-	responseRecorder := httptest.NewRecorder()
-	NotFound(responseRecorder, request)
-	res := responseRecorder.Result()
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-	assert.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
-	body, err := io.ReadAll(res.Body)
-	if assert.NoError(t, err) {
-		assert.Equal(t, "The requested url /NotFound was not found.\n", string(body))
+	t.Parallel()
+
+	req := httptest.NewRequest(http.MethodGet, "/NotFound", nil)
+	recorder := httptest.NewRecorder()
+	NotFound(recorder, req)
+	res := recorder.Result()
+	if got, want := res.StatusCode, http.StatusNotFound; got != want {
+		t.Errorf("StatusCode = got %d, want %d", got, want)
+	}
+	if got, want := res.Header.Get("Content-Type"), "text/plain; charset=utf-8"; got != want {
+		t.Errorf("Content-Type = got %s, want %s", got, want)
+	}
+
+	got, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("ReadAll() failed: %v", err)
+	}
+	if diff := cmp.Diff("The requested url /NotFound was not found.\n", string(got)); diff != "" {
+		t.Errorf("Response = (-want, +got):\n%s", diff)
 	}
 }
