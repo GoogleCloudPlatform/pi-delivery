@@ -18,16 +18,18 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/googlecloudplatform/pi-delivery/pkg/ycd"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestUnpack_ToPackedOffsets(t *testing.T) {
 	testCases := []struct {
-		radix              int
-		blockSize          int64
-		off, len, start, n int64
-		pre, post          int
+		radix             int
+		blockSize         int64
+		off, len          int64
+		wantStart, wantN  int64
+		wantPre, wantPost int
 	}{
 		{10, 40, 0, 0, 0, 0, 0, 0},
 		{10, 40, 0, 1, 0, 8, 0, 18},
@@ -48,25 +50,24 @@ func TestUnpack_ToPackedOffsets(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-		t.Run(fmt.Sprintf("Radix %d BlockSize %d Off %d Len %d Start %d", tc.radix, tc.blockSize, tc.off, tc.len, tc.start), func(t *testing.T) {
-			t.Parallel()
+		t.Run(fmt.Sprintf("Radix %d BlockSize %d Off %d Len %d", tc.radix, tc.blockSize, tc.off, tc.len), func(t *testing.T) {
 			start, n, pre, post := ToPackedOffsets(tc.off, tc.blockSize, tc.len, ycd.DigitsPerWord(tc.radix))
-			assert.Equal(t, tc.start, start, "start")
-			assert.Equal(t, tc.n, n, "n")
-			assert.Equal(t, tc.pre, pre, "pre")
-			assert.Equal(t, tc.post, post, "post")
+			if start != tc.wantStart || n != tc.wantN || pre != tc.wantPre || post != tc.wantPost {
+				t.Errorf("ToPackedOffsets() = (start, n, pre, post): got (%d, %d, %d, %d), want (%d, %d, %d, %d)",
+					start, n, pre, post, tc.wantStart, tc.wantN, tc.wantPre, tc.wantPost)
+			}
 		})
 	}
 }
 
 func TestUnpack_Errors(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		unpacked int
 		packed   int
 		radix    int
 		pre      int
-		err      error
+		wantErr  error
 	}{
 		{0, 0, 10, 0, nil},
 		{0, WordSize, 10, 0, nil},
@@ -91,19 +92,25 @@ func TestUnpack_Errors(t *testing.T) {
 				packed = make([]byte, tc.packed)
 			}
 			n, err := UnpackBlock(unpacked, packed, tc.radix, tc.pre)
-			assert.Zero(t, n)
-			assert.ErrorIs(t, err, tc.err)
+			if !cmp.Equal(err, tc.wantErr, cmpopts.EquateErrors()) {
+				t.Errorf("UnpackBlock() = got error %v, want %v", err, tc.wantErr)
+			}
+			if n != 0 {
+				t.Errorf("UnpackBlock(): n = got %d, want 0", n)
+			}
 		})
 	}
 }
 
 func TestUnpack_Unpack(t *testing.T) {
+	t.Parallel()
+
 	longPackedDec := []byte{
 		0x8e, 0x22, 0xa2, 0x31, 0xfe, 0xa8, 0x16, 0x83,
 		0x43, 0xe1, 0x29, 0xbc, 0x73, 0xf4, 0x7c, 0x0c,
 		0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
-	longExpectedDec := []byte(
+	wantLongDec := []byte(
 		"9445923078164062862" +
 			"0899862803482534211" +
 			"0000000000000000003")
@@ -113,17 +120,17 @@ func TestUnpack_Unpack(t *testing.T) {
 		0xfb, 0x7e, 0x50, 0xf0, 0x3b, 0xba, 0x76, 0x01,
 		0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
-	longExpectedHex := []byte(
+	wantLongHex := []byte(
 		"2a986eef0b6c137a" +
 			"0176ba3bf0507efb" +
 			"00000000000000ff")
 
 	testCases := []struct {
-		radix    int
-		packed   []byte
-		expected []byte
-		pre      int
-		post     int
+		radix  int
+		packed []byte
+		want   []byte
+		pre    int
+		post   int
 	}{
 		{10, []byte{0, 0, 0, 0, 0, 0, 0, 0}, []byte("0000000000000000000"), 0, 0},
 		{10, []byte{0, 0, 0, 0, 0, 0, 0, 0}, []byte("00000000000000000"), 2, 0},
@@ -135,30 +142,36 @@ func TestUnpack_Unpack(t *testing.T) {
 		{10, []byte{0x00, 0x00, 0xf4, 0x44, 0x82, 0x91, 0x63, 0x45}, []byte("5000000000000000000"), 0, 0},
 		{10, []byte{0x00, 0x00, 0xf4, 0x44, 0x82, 0x91, 0x63, 0x45}, []byte("5"), 0, 18},
 		{10, []byte{0x00, 0x00, 0xf4, 0x44, 0x82, 0x91, 0x63, 0x45}, []byte("0"), 18, 0},
-		{10, longPackedDec, longExpectedDec, 0, 0},
-		{10, longPackedDec, longExpectedDec[1:], 1, 0},
-		{10, longPackedDec, longExpectedDec[1 : len(longExpectedDec)-1], 1, 1},
-		{10, longPackedDec, longExpectedDec[1 : len(longExpectedDec)-18], 1, 18},
-		{10, longPackedDec, longExpectedDec[18 : len(longExpectedDec)-18], 18, 18},
+		{10, longPackedDec, wantLongDec, 0, 0},
+		{10, longPackedDec, wantLongDec[1:], 1, 0},
+		{10, longPackedDec, wantLongDec[1 : len(wantLongDec)-1], 1, 1},
+		{10, longPackedDec, wantLongDec[1 : len(wantLongDec)-18], 1, 18},
+		{10, longPackedDec, wantLongDec[18 : len(wantLongDec)-18], 18, 18},
 		{16, []byte{0, 0, 0, 0, 0, 0, 0, 0}, []byte("0000000000000000"), 0, 0},
 		{16, []byte{0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00}, []byte("ffffff"), 10, 0},
 		{16, []byte{0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00}, []byte("ffff"), 10, 2},
-		{16, longPackedHex, longExpectedHex, 0, 0},
-		{16, longPackedHex, longExpectedHex[1:], 1, 0},
-		{16, longPackedHex, longExpectedHex[1 : len(longExpectedHex)-1], 1, 1},
-		{16, longPackedHex, longExpectedHex[15 : len(longExpectedHex)-1], 15, 1},
-		{16, longPackedHex, longExpectedHex[15 : len(longExpectedHex)-15], 15, 15},
+		{16, longPackedHex, wantLongHex, 0, 0},
+		{16, longPackedHex, wantLongHex[1:], 1, 0},
+		{16, longPackedHex, wantLongHex[1 : len(wantLongHex)-1], 1, 1},
+		{16, longPackedHex, wantLongHex[15 : len(wantLongHex)-1], 15, 1},
+		{16, longPackedHex, wantLongHex[15 : len(wantLongHex)-15], 15, 15},
 	}
 
 	for _, tc := range testCases {
 		tc := tc
-		t.Run(fmt.Sprintf("Radix %d Expected %s Pre %d Post %d", tc.radix, tc.expected, tc.pre, tc.post), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Radix %d Expected %s Pre %d Post %d", tc.radix, tc.want, tc.pre, tc.post), func(t *testing.T) {
 			t.Parallel()
 			unpacked := make([]byte, UnpackedLen(int64(len(tc.packed)), tc.radix)-int64(tc.pre+tc.post))
 			n, err := UnpackBlock(unpacked, tc.packed, tc.radix, tc.pre)
-			assert.Equal(t, len(tc.expected), n)
-			assert.NoError(t, err, "Unpack")
-			assert.Equal(t, tc.expected, unpacked)
+			if err != nil {
+				t.Errorf("UnpackBlock() failed: %v", err)
+			}
+			if n != len(tc.want) {
+				t.Errorf("UnpackBlock(): n = got %d, want %d", n, len(tc.want))
+			}
+			if diff := cmp.Diff(tc.want, unpacked); diff != "" {
+				t.Errorf("UnpackBlock() = (-want, +got):\n%s", diff)
+			}
 		})
 	}
 }

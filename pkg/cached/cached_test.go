@@ -17,29 +17,60 @@ package cached
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"testing"
 	"testing/iotest"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	mock_obj "github.com/googlecloudplatform/pi-delivery/pkg/obj/mocks"
 	"github.com/googlecloudplatform/pi-delivery/pkg/resultset"
 	"github.com/googlecloudplatform/pi-delivery/pkg/tests"
 	"github.com/googlecloudplatform/pi-delivery/pkg/ycd"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func genTestByteSeq(n int) []byte {
-	buf := make([]byte, n)
-	for i := 0; i < n; i++ {
-		buf[i] = byte(i)
+func TestCachedReader_New(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	mockCtrl := gomock.NewController(t)
+
+	testSet := resultset.ResultSet{
+		{
+			Header: &ycd.Header{
+				Radix:       10,
+				TotalDigits: int64(0),
+				BlockSize:   int64(1000),
+				BlockID:     int64(0),
+				Length:      198,
+			},
+			Name:             "Pi - Dec - Chudnovsky/Pi - Dec - Chudnovsky - 0.ycd",
+			FirstDigitOffset: 201,
+		},
 	}
-	return buf
+
+	ur := testSet.NewReader(ctx, mock_obj.NewMockBucket(mockCtrl))
+	t.Cleanup(func() {
+		if err := ur.Close(); err != nil {
+			t.Errorf("Close() failed: %v", err)
+		}
+	})
+	if ur == nil {
+		t.Fatal("NewReader(): got nil, want non-nil")
+	}
+
+	rd := NewCachedReader(ctx, ur)
+	if rd == nil {
+		t.Errorf("NewCacheReader(): got nil, want non-nil")
+	}
+	if diff := cmp.Diff(testSet, rd.ResultSet()); diff != "" {
+		t.Errorf("reader.ResultSet() = (-want, got):\n%s", diff)
+	}
 }
 
-func TestCachedReader_Simple(t *testing.T) {
+func TestCachedReader_Cached(t *testing.T) {
 	t.Parallel()
+
 	mockCtrl := gomock.NewController(t)
 	testSet := resultset.ResultSet{
 		{
@@ -55,26 +86,10 @@ func TestCachedReader_Simple(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	testBuf := genTestByteSeq(int(testSet.TotalByteLength()))
+	testBuf := tests.GenTestByteSeq(int(testSet.TotalByteLength()))
 
 	bucket := mock_obj.NewMockBucket(mockCtrl)
 	object := mock_obj.NewMockObject(mockCtrl)
-
-	rr := testSet.NewReader(ctx, bucket)
-	require.NotNil(t, rr)
-
-	reader := NewCachedReader(ctx, rr)
-	require.NotNil(t, reader)
-
-	assert.Equal(t, testSet, reader.ResultSet())
-
-	test := func(off int64, n int) {
-		buf := make([]byte, n)
-		if m, err := reader.ReadAt(buf, off); assert.NoError(t, err) {
-			assert.Equal(t, n, m)
-			assert.Equal(t, testBuf[off:off+int64(n)], buf)
-		}
-	}
 
 	// Check if the cache is working around boundaries.
 	bucket.EXPECT().
@@ -101,175 +116,186 @@ func TestCachedReader_Simple(t *testing.T) {
 			MaxTimes(1),
 	)
 
-	test(0, 10)
-	test(20, 10)
-	test(10, 10)
-	test(20, 10)
-	test(0, 30)
+	ur := testSet.NewReader(ctx, bucket)
+	t.Cleanup(func() {
+		if err := ur.Close(); err != nil {
+			t.Errorf("Close() failed: %v", err)
+		}
+	})
+	rd := NewCachedReader(ctx, ur)
 
-	// Make sure the cache is correctly constructed.
-	bucket.EXPECT().Object(testSet[0].Name).Return(object).AnyTimes()
-
-	object.EXPECT().NewRangeReader(
-		gomock.AssignableToTypeOf(ctx),
-		gomock.Any(),
-		gomock.Any(),
-	).DoAndReturn(
-		func(ctx context.Context, off, length int64) (io.ReadCloser, error) {
-			return tests.NewTestReader(testSet, 0, testBuf, off, length)
-		},
-	).AnyTimes()
-
-	test(15, 30)
-	test(25, 10)
-	test(11, 2)
-	test(0, 50)
-	test(52, 1)
-	test(54, 10)
-	test(51, 1)
-	test(50, 15)
+	testCases := []struct {
+		off int64
+		n   int
+	}{
+		{0, 10},
+		{20, 10},
+		{10, 10},
+		{20, 10},
+		{0, 30},
+	}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%d, %d", tc.off, tc.n), func(t *testing.T) {
+			buf := make([]byte, tc.n)
+			n, err := rd.ReadAt(buf, tc.off)
+			if err != nil {
+				t.Errorf("ReadAt(%p, %d) failed: %v", buf, tc.off, err)
+			}
+			if got, want := n, tc.n; got != want {
+				t.Errorf("ReadAt(%p, %d): n = got %d, want %d", buf, tc.off, got, want)
+			}
+			if diff := cmp.Diff(testBuf[tc.off:tc.off+int64(tc.n)], buf); diff != "" {
+				t.Errorf("ReadAt(%p, %d) = (-want, +got):\n%s", buf, tc.off, diff)
+			}
+		})
+	}
 }
 
-func TestCachedReader_IOTestSmall(t *testing.T) {
+func TestCacheReader_Simple(t *testing.T) {
 	t.Parallel()
-	mockCtrl := gomock.NewController(t)
 
+	mockCtrl := gomock.NewController(t)
 	testSet := resultset.ResultSet{
 		{
 			Header: &ycd.Header{
 				Radix:       10,
 				TotalDigits: int64(0),
-				BlockSize:   int64(100),
+				BlockSize:   int64(1000),
 				BlockID:     int64(0),
 				Length:      198,
 			},
 			Name:             "Pi - Dec - Chudnovsky/Pi - Dec - Chudnovsky - 0.ycd",
 			FirstDigitOffset: 201,
 		},
-		{
-			Header: &ycd.Header{
-				Radix:       10,
-				TotalDigits: int64(0),
-				BlockSize:   int64(100),
-				BlockID:     int64(1),
-				Length:      198,
-			},
-			Name:             "Pi - Dec - Chudnovsky/Pi - Dec - Chudnovsky - 1.ycd",
-			FirstDigitOffset: 201,
-		},
 	}
 	ctx := context.Background()
-	testBuf := genTestByteSeq(int(testSet.TotalByteLength()))
+	testBuf := tests.GenTestByteSeq(int(testSet.TotalByteLength()))
+	bucket := tests.NewMockBucket(ctx, mockCtrl, testSet, testBuf)
 
-	bucket := mock_obj.NewMockBucket(mockCtrl)
-	obj0 := mock_obj.NewMockObject(mockCtrl)
-	obj1 := mock_obj.NewMockObject(mockCtrl)
+	ur := testSet.NewReader(ctx, bucket)
+	t.Cleanup(func() {
+		if err := ur.Close(); err != nil {
+			t.Errorf("Close() failed: %v", err)
+		}
+	})
 
-	bucket.EXPECT().Object(testSet[0].Name).Return(obj0).AnyTimes()
-	bucket.EXPECT().Object(testSet[1].Name).Return(obj1).AnyTimes()
-
-	obj0.EXPECT().NewRangeReader(
-		gomock.AssignableToTypeOf(ctx),
-		gomock.Any(),
-		gomock.Any(),
-	).DoAndReturn(
-		func(ctx context.Context, off, length int64) (io.ReadCloser, error) {
-			return tests.NewTestReader(testSet, 0, testBuf, off, length)
-		},
-	).AnyTimes()
-
-	obj1.EXPECT().NewRangeReader(
-		gomock.AssignableToTypeOf(ctx),
-		gomock.Any(),
-		gomock.Any(),
-	).DoAndReturn(
-		func(ctx context.Context, off, length int64) (io.ReadCloser, error) {
-			return tests.NewTestReader(testSet, 1, testBuf, off, length)
-		},
-	).AnyTimes()
-
-	rr := testSet.NewReader(ctx, bucket)
-	require.NotNil(t, rr)
-	defer assert.NoError(t, rr.Close())
-
-	reader := NewCachedReader(ctx, rr)
-	require.NotNil(t, reader)
-
-	assert.Equal(t, testSet, reader.ResultSet())
-
-	assert.NoError(t, iotest.TestReader(reader, testBuf))
+	rd := NewCachedReader(ctx, ur)
+	testCases := []struct {
+		off int64
+		n   int
+	}{
+		{15, 30},
+		{25, 10},
+		{11, 2},
+		{0, 50},
+		{52, 1},
+		{54, 10},
+		{51, 1},
+		{50, 15},
+	}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%d, %d", tc.off, tc.n), func(t *testing.T) {
+			buf := make([]byte, tc.n)
+			n, err := rd.ReadAt(buf, tc.off)
+			if err != nil {
+				t.Errorf("ReadAt(%p, %d) failed: %v", buf, tc.off, err)
+			}
+			if got, want := n, tc.n; got != want {
+				t.Errorf("ReadAt(%p, %d): n = got %d, want %d", buf, tc.off, got, want)
+			}
+			if diff := cmp.Diff(testBuf[tc.off:tc.off+int64(tc.n)], buf); diff != "" {
+				t.Errorf("ReadAt(%p, %d) = (-want, +got):\n%s", buf, tc.off, diff)
+			}
+		})
+	}
 }
 
-func TestCachedReader_IOTestLarge(t *testing.T) {
+func TestCachedReader_IOTest(t *testing.T) {
 	t.Parallel()
-	mockCtrl := gomock.NewController(t)
 
-	testSet := resultset.ResultSet{
+	testCases := []struct {
+		name string
+		set  resultset.ResultSet
+	}{
 		{
-			Header: &ycd.Header{
-				FileVersion: "1.1.0",
-				Radix:       16,
-				FirstDigits: "3.243f6a8885a308d313198a2e03707344a4093822299f31d008",
-				TotalDigits: int64(0),
-				BlockSize:   int64(1200000),
-				BlockID:     int64(0),
-				Length:      198,
+			name: "small",
+			set: resultset.ResultSet{
+				{
+					Header: &ycd.Header{
+						Radix:       10,
+						TotalDigits: int64(0),
+						BlockSize:   int64(100),
+						BlockID:     int64(0),
+						Length:      198,
+					},
+					Name:             "Pi - Dec - Chudnovsky/Pi - Dec - Chudnovsky - 0.ycd",
+					FirstDigitOffset: 201,
+				},
+				{
+					Header: &ycd.Header{
+						Radix:       10,
+						TotalDigits: int64(0),
+						BlockSize:   int64(100),
+						BlockID:     int64(1),
+						Length:      198,
+					},
+					Name:             "Pi - Dec - Chudnovsky/Pi - Dec - Chudnovsky - 1.ycd",
+					FirstDigitOffset: 201,
+				},
 			},
-			Name:             "Pi - Hex - Chudnovsky/Pi - Hex - Chudnovsky - 0.ycd",
-			FirstDigitOffset: 201,
 		},
 		{
-			Header: &ycd.Header{
-				FileVersion: "1.1.0",
-				Radix:       16,
-				FirstDigits: "3.243f6a8885a308d313198a2e03707344a4093822299f31d008",
-				TotalDigits: int64(0),
-				BlockSize:   int64(1200000),
-				BlockID:     int64(1),
-				Length:      198,
+			name: "large",
+			set: resultset.ResultSet{
+				{
+					Header: &ycd.Header{
+						FileVersion: "1.1.0",
+						Radix:       16,
+						FirstDigits: "3.243f6a8885a308d313198a2e03707344a4093822299f31d008",
+						TotalDigits: int64(0),
+						BlockSize:   int64(1200000),
+						BlockID:     int64(0),
+						Length:      198,
+					},
+					Name:             "Pi - Hex - Chudnovsky/Pi - Hex - Chudnovsky - 0.ycd",
+					FirstDigitOffset: 201,
+				},
+				{
+					Header: &ycd.Header{
+						FileVersion: "1.1.0",
+						Radix:       16,
+						FirstDigits: "3.243f6a8885a308d313198a2e03707344a4093822299f31d008",
+						TotalDigits: int64(0),
+						BlockSize:   int64(1200000),
+						BlockID:     int64(1),
+						Length:      198,
+					},
+					Name:             "Pi - Hex - Chudnovsky/Pi - Hex - Chudnovsky - 1.ycd",
+					FirstDigitOffset: 201,
+				},
 			},
-			Name:             "Pi - Hex - Chudnovsky/Pi - Hex - Chudnovsky - 1.ycd",
-			FirstDigitOffset: 201,
 		},
 	}
-	ctx := context.Background()
-	testBuf := genTestByteSeq(int(testSet.TotalByteLength()))
 
-	bucket := mock_obj.NewMockBucket(mockCtrl)
-	obj0 := mock_obj.NewMockObject(mockCtrl)
-	obj1 := mock_obj.NewMockObject(mockCtrl)
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			mockCtrl := gomock.NewController(t)
+			testBuf := tests.GenTestByteSeq(int(tc.set.TotalByteLength()))
+			bucket := tests.NewMockBucket(ctx, mockCtrl, tc.set, testBuf)
 
-	bucket.EXPECT().Object(testSet[0].Name).Return(obj0).AnyTimes()
-	bucket.EXPECT().Object(testSet[1].Name).Return(obj1).AnyTimes()
-
-	obj0.EXPECT().NewRangeReader(
-		gomock.AssignableToTypeOf(ctx),
-		gomock.Any(),
-		gomock.Any(),
-	).DoAndReturn(
-		func(ctx context.Context, off, length int64) (io.ReadCloser, error) {
-			return tests.NewTestReader(testSet, 0, testBuf, off, length)
-		},
-	).AnyTimes()
-
-	obj1.EXPECT().NewRangeReader(
-		gomock.AssignableToTypeOf(ctx),
-		gomock.Any(),
-		gomock.Any(),
-	).DoAndReturn(
-		func(ctx context.Context, off, length int64) (io.ReadCloser, error) {
-			return tests.NewTestReader(testSet, 1, testBuf, off, length)
-		},
-	).AnyTimes()
-
-	rr := testSet.NewReader(ctx, bucket)
-	require.NotNil(t, rr)
-	defer assert.NoError(t, rr.Close())
-
-	reader := NewCachedReader(ctx, rr)
-	require.NotNil(t, reader)
-
-	assert.Equal(t, testSet, reader.ResultSet())
-
-	assert.NoError(t, iotest.TestReader(reader, testBuf))
+			ur := tc.set.NewReader(ctx, bucket)
+			t.Cleanup(func() {
+				if err := ur.Close(); err != nil {
+					t.Errorf("Close() failed: %v", err)
+				}
+			})
+			rd := NewCachedReader(ctx, ur)
+			if err := iotest.TestReader(rd, testBuf); err != nil {
+				t.Errorf("TestReader() failed: %v", err)
+			}
+		})
+	}
 }
