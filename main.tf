@@ -22,11 +22,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 4.36.0"
+      version = "~> 4.47.0"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = "~> 4.36.0"
+      version = "~> 4.47.0"
     }
   }
 }
@@ -367,45 +367,70 @@ resource "google_compute_global_forwarding_rule" "api_v6" {
   target                = google_compute_target_https_proxy.api.id
 }
 
-data "google_dns_managed_zone" "pi_delivery" {
-  name = "pi-delivery"
+resource "google_dns_managed_zone" "pi_delivery" {
+  name        = "pi-delivery"
+  dns_name    = "pi.delivery."
+  description = "pi.delivery"
+
+  dnssec_config {
+    state = "on"
+  }
+}
+
+resource "google_dns_record_set" "txt" {
+  name         = google_dns_managed_zone.pi_delivery.dns_name
+  managed_zone = google_dns_managed_zone.pi_delivery.name
+  type         = "TXT"
+  ttl          = 21600
+  rrdatas = [
+    "\"google-site-verification=0z8eYQsVmHdhVIQLltoNwaimDS9IBevwwGV4klEUPKs\""
+  ]
+}
+
+resource "google_dns_record_set" "web" {
+  name         = google_dns_managed_zone.pi_delivery.dns_name
+  managed_zone = google_dns_managed_zone.pi_delivery.name
+  type         = "A"
+  ttl          = 21600
+  // https://firebase.google.com/docs/hosting/custom-domain
+  rrdatas = ["199.36.158.100"]
 }
 
 resource "google_dns_record_set" "api_a" {
-  name         = "api.${data.google_dns_managed_zone.pi_delivery.dns_name}"
+  name         = "api.${google_dns_managed_zone.pi_delivery.dns_name}"
   type         = "A"
-  ttl          = 300
-  managed_zone = data.google_dns_managed_zone.pi_delivery.name
+  ttl          = 21600
+  managed_zone = google_dns_managed_zone.pi_delivery.name
   rrdatas = [
     google_compute_global_address.api.address
   ]
 }
 
 resource "google_dns_record_set" "api_aaaa" {
-  name         = "api.${data.google_dns_managed_zone.pi_delivery.dns_name}"
+  name         = "api.${google_dns_managed_zone.pi_delivery.dns_name}"
   type         = "AAAA"
-  ttl          = 300
-  managed_zone = data.google_dns_managed_zone.pi_delivery.name
+  ttl          = 21600
+  managed_zone = google_dns_managed_zone.pi_delivery.name
   rrdatas = [
     google_compute_global_address.api_v6.address
   ]
 }
 
 resource "google_dns_record_set" "api_staging_a" {
-  name         = "api.staging.${data.google_dns_managed_zone.pi_delivery.dns_name}"
+  name         = "api.staging.${google_dns_managed_zone.pi_delivery.dns_name}"
   type         = "A"
   ttl          = 60
-  managed_zone = data.google_dns_managed_zone.pi_delivery.name
+  managed_zone = google_dns_managed_zone.pi_delivery.name
   rrdatas = [
     google_compute_global_address.api.address
   ]
 }
 
 resource "google_dns_record_set" "api_staging_aaaa" {
-  name         = "api.staging.${data.google_dns_managed_zone.pi_delivery.dns_name}"
+  name         = "api.staging.${google_dns_managed_zone.pi_delivery.dns_name}"
   type         = "AAAA"
   ttl          = 60
-  managed_zone = data.google_dns_managed_zone.pi_delivery.name
+  managed_zone = google_dns_managed_zone.pi_delivery.name
   rrdatas = [
     google_compute_global_address.api_v6.address
   ]
