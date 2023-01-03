@@ -46,14 +46,21 @@ locals {
   regions = toset(var.regions)
 }
 
-/* It's not available yet...
-data "google_cloudfunctions2_function" "api_get" {
-  provider = google-beta
+data "google_cloudfunctions2_function" "api_pi" {
   for_each = local.regions
-  name     = "api-get-${each.value}"
-  region   = each.value
+  name     = "api-pi"
+  location = each.value
 }
-*/
+
+data "google_cloudfunctions2_function" "api_not_found" {
+  name     = "api-not-found"
+  location = "us-central1"
+}
+
+data "google_cloudfunctions2_function" "api_pi_staging" {
+  name     = "api-pi-staging"
+  location = "us-central1"
+}
 
 resource "google_storage_bucket" "functions_staging" {
   name     = "piaas-gcp-gcf-staging"
@@ -129,43 +136,39 @@ resource "random_id" "neg" {
 }
 
 resource "google_compute_region_network_endpoint_group" "api_func_pi_prod" {
-  provider = google-beta
-  for_each = local.regions
+  for_each = data.google_cloudfunctions2_function.api_pi
 
-  name                  = "api-neg-func-pi-prod-${each.value}-${random_id.neg.hex}"
+  name                  = "api-neg-func-pi-prod-${each.value.location}-${random_id.neg.hex}"
   network_endpoint_type = "SERVERLESS"
-  region                = each.value
+  region                = each.value.location
 
-  description = "API network endpoint for /v1/pi ${each.value}"
+  description = "API network endpoint for /v1/pi ${each.value.location}"
 
   cloud_run {
-    service = "api-pi"
+    service = each.value.name
   }
 }
 
 resource "google_compute_region_network_endpoint_group" "api_func_pi_staging" {
-  provider = google-beta
-
   name                  = "api-neg-func-pi-staging-${random_id.neg.hex}"
   network_endpoint_type = "SERVERLESS"
-  region                = "us-central1"
+  region                = data.google_cloudfunctions2_function.api_pi_staging.location
 
   description = "API network endpoint for /v1/pi staging"
 
   cloud_run {
-    service = "api-pi-staging"
+    service = data.google_cloudfunctions2_function.api_pi_staging.name
   }
 }
 
 resource "google_compute_region_network_endpoint_group" "api_not_found" {
-  provider              = google-beta
   name                  = "api-neg-not-found"
   network_endpoint_type = "SERVERLESS"
-  region                = "us-central1"
+  region                = data.google_cloudfunctions2_function.api_not_found.location
   description           = "Endpoint for 404"
 
   cloud_run {
-    service = "api-not-found"
+    service = data.google_cloudfunctions2_function.api_not_found.name
   }
 }
 
@@ -174,8 +177,6 @@ resource "random_id" "backend" {
 }
 
 resource "google_compute_backend_service" "api_func_pi_prod" {
-  provider = google-beta
-
   name                  = "api-func-pi-prod-backend-${random_id.backend.hex}"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   security_policy       = "api-prod"
@@ -198,8 +199,6 @@ resource "google_compute_backend_service" "api_func_pi_prod" {
 }
 
 resource "google_compute_backend_service" "api_func_pi_staging" {
-  provider = google-beta
-
   name                  = "api-func-pi-staging-backend-${random_id.backend.hex}"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   security_policy       = "api-staging"
@@ -219,7 +218,6 @@ resource "google_compute_backend_service" "api_func_pi_staging" {
 }
 
 resource "google_compute_backend_service" "api_not_found" {
-  provider              = google-beta
   name                  = "api-not-found-backend"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   security_policy       = "api-prod"
@@ -349,7 +347,6 @@ resource "google_compute_target_https_proxy" "api" {
 
 resource "google_compute_global_forwarding_rule" "api" {
   name       = "api-forwarding-rule"
-  provider   = google-beta
   port_range = "443"
 
   load_balancing_scheme = "EXTERNAL_MANAGED"
@@ -359,7 +356,6 @@ resource "google_compute_global_forwarding_rule" "api" {
 
 resource "google_compute_global_forwarding_rule" "api_v6" {
   name       = "api-forwarding-rule-v6"
-  provider   = google-beta
   port_range = "443"
 
   load_balancing_scheme = "EXTERNAL_MANAGED"
