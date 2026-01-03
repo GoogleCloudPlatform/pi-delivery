@@ -41,9 +41,9 @@ Set up y-cruncher.
 ```bash
 sudo -s # Become root
 cd /mnt/y-cruncher
-gsutil cp 'gs://pi-100t-internal/y-cruncher%20v0.7.8.9507-dynamic.tar.xz' ./
+gcloud storage cp 'gs://pi-100t-internal/y-cruncher%20v0.7.8.9507-dynamic.tar.xz' ./
 tar xf y-cruncher%20v0.7.8.9507-dynamic.tar.xz -C y-cruncher --strip-components 1
-gsutil cp gs://pi-100t-internal/100t-60.cfg ./y-cruncher/
+gcloud storage cp gs://pi-100t-internal/100t-60.cfg ./y-cruncher/
 ```
 
 Copy `create-snapshot.sh` to the same directory as y-cruncher (`/mnt/y-cruncher/y-cruncher`) and make it executable.
